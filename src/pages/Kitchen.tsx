@@ -508,9 +508,13 @@ const Kitchen = () => {
                      </div>
 
                      <div className="space-y-2">
-                      {order.direccion_envio && order.direccion_envio.toLowerCase() !== 'retiro por local' ? (
-                        <>
-                          {order.cadete_salio ? (
+                      {(() => {
+                        const direccion = order.direccion_envio?.toLowerCase() || '';
+                        const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
+                        
+                        if (!isPickup && order.direccion_envio) {
+                          // Delivery order
+                          return order.cadete_salio ? (
                             <Badge variant="default" className="w-full py-2 justify-center">
                               🚴 Cadete en camino
                             </Badge>
@@ -523,11 +527,10 @@ const Kitchen = () => {
                             >
                               🚴 Cadete Salió
                             </Button>
-                          )}
-                        </>
-                      ) : order.direccion_envio?.toLowerCase() === 'retiro por local' && (
-                        <>
-                          {order.cadete_salio ? (
+                          );
+                        } else if (isPickup) {
+                          // Pickup order
+                          return order.cadete_salio ? (
                             <Badge variant="default" className="w-full py-2 justify-center">
                               ✅ Listo para retirar
                             </Badge>
@@ -540,9 +543,10 @@ const Kitchen = () => {
                             >
                               📦 Listo para retirar
                             </Button>
-                          )}
-                        </>
-                      )}
+                          );
+                        }
+                        return null;
+                      })()}
                       <Button 
                         onClick={() => markAsCompleted(order.id)}
                         className="w-full bg-success hover:bg-success/90 text-success-foreground"
