@@ -55,17 +55,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Determine if it's a pickup order
+    const direccion = order.direccion_envio?.toLowerCase() || '';
+    const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
+
+    let message: string;
+    if (order.cadete_salio) {
+      if (isPickup) {
+        message = `El pedido #${order.order_number} está listo para retirar en el local`;
+      } else {
+        message = `El cadete ya salió con el pedido #${order.order_number}`;
+      }
+    } else {
+      if (order.status === 'completed') {
+        message = isPickup 
+          ? `El pedido #${order.order_number} está listo` 
+          : `El pedido #${order.order_number} está listo pero el cadete aún no salió`;
+      } else {
+        message = `El pedido #${order.order_number} está en preparación`;
+      }
+    }
+
     return new Response(
       JSON.stringify({
         found: true,
         order_number: order.order_number,
         status: order.status,
         cadete_salio: order.cadete_salio,
+        listo_para_retirar: isPickup && order.cadete_salio,
+        es_retiro: isPickup,
         nombre: order.nombre,
         direccion_envio: order.direccion_envio,
-        message: order.cadete_salio 
-          ? `El cadete ya salió con el pedido #${order.order_number}` 
-          : `El pedido #${order.order_number} está ${order.status === 'pending' ? 'pendiente' : 'listo'} pero el cadete aún no salió`
+        message
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
