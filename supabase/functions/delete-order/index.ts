@@ -6,50 +6,64 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ESC/POS Commands
-const ESC = '\x1B';
-const GS = '\x1D';
-const BOLD_ON = ESC + 'E' + '\x01';
-const BOLD_OFF = ESC + 'E' + '\x00';
-const DOUBLE_HEIGHT_ON = GS + '!' + '\x10';
-const DOUBLE_WIDTH_ON = GS + '!' + '\x20';
-const DOUBLE_SIZE_ON = GS + '!' + '\x30';
-const NORMAL_SIZE = GS + '!' + '\x00';
-const CENTER = ESC + 'a' + '\x01';
-const LEFT = ESC + 'a' + '\x00';
-const CUT = GS + 'V' + '\x00';
-
-function generateCancelTicket(type: 'kitchen' | 'cashier', orderNumber: number, nombre: string): string {
-  let ticket = '';
+// Helper function to generate ESC/POS cancel ticket
+function generateCancelTicket(type: 'kitchen' | 'cashier', orderNumber: number, nombre: string): Uint8Array {
+  const bytes: number[] = [];
+  
+  // ESC/POS commands
+  const ESC = 0x1B;
+  const GS = 0x1D;
+  const LF = 0x0A;
+  const CENTER = [ESC, 0x61, 0x01];
+  const LEFT = [ESC, 0x61, 0x00];
+  const BOLD_ON = [ESC, 0x45, 0x01];
+  const BOLD_OFF = [ESC, 0x45, 0x00];
+  const DOUBLE_SIZE = [ESC, 0x21, 0x30]; // Double width and height
+  const NORMAL_SIZE = [ESC, 0x21, 0x00]; // Normal size
+  const CUT = [GS, 0x56, 0x00];
+  
+  const addBytes = (...b: number[]) => bytes.push(...b);
+  const addText = (text: string) => {
+    const encoder = new TextEncoder();
+    addBytes(...Array.from(encoder.encode(text)));
+  };
+  const addLine = () => {
+    addText('================================');
+    addBytes(LF);
+  };
+  const newLine = () => addBytes(LF);
+  
+  // Initialize with center alignment
+  addBytes(...CENTER);
   
   // Header
-  ticket += CENTER;
-  ticket += BOLD_ON + DOUBLE_SIZE_ON;
-  ticket += type === 'kitchen' ? 'COCINA\n' : 'CAJA\n';
-  ticket += NORMAL_SIZE + BOLD_OFF;
-  ticket += '\n';
+  addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+  addText(type === 'kitchen' ? 'COCINA' : 'CAJA');
+  addBytes(...BOLD_OFF, LF);
+  addLine();
   
   // Order number
-  ticket += BOLD_ON + DOUBLE_SIZE_ON;
-  ticket += `PEDIDO #${orderNumber}\n`;
-  ticket += NORMAL_SIZE + BOLD_OFF;
-  ticket += '\n';
+  addBytes(...BOLD_ON);
+  addText(`PEDIDO #${orderNumber}`);
+  addBytes(...BOLD_OFF, LF);
+  addLine();
+  newLine();
   
   // CANCELADO in big letters
-  ticket += BOLD_ON + DOUBLE_SIZE_ON;
-  ticket += '*** CANCELADO ***\n';
-  ticket += NORMAL_SIZE + BOLD_OFF;
-  ticket += '\n';
+  addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+  addText('*** CANCELADO ***');
+  addBytes(...BOLD_OFF, LF, ...NORMAL_SIZE);
+  newLine();
   
   // Customer name
-  ticket += LEFT;
-  ticket += `Cliente: ${nombre}\n`;
-  ticket += '\n\n\n\n';
+  addBytes(...LEFT);
+  addText(`Cliente: ${nombre}`);
+  newLine();
   
-  // Cut
-  ticket += CUT;
+  addBytes(LF, LF, LF, LF, LF);
+  addBytes(...CUT);
   
-  return ticket;
+  return new Uint8Array(bytes);
 }
 
 Deno.serve(async (req) => {
@@ -133,13 +147,13 @@ Deno.serve(async (req) => {
     const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
     const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
 
-    try {
-      const kitchenTicket = generateCancelTicket('kitchen', existingOrder.order_number, existingOrder.nombre);
-      const cashierTicket = generateCancelTicket('cashier', existingOrder.order_number, existingOrder.nombre);
+try {
+      const kitchenTicketBytes = generateCancelTicket('kitchen', existingOrder.order_number, existingOrder.nombre);
+      const cashierTicketBytes = generateCancelTicket('cashier', existingOrder.order_number, existingOrder.nombre);
       
       // Convert to base64
-      const kitchenB64 = btoa(kitchenTicket);
-      const cashierB64 = btoa(cashierTicket);
+      const kitchenB64 = btoa(String.fromCharCode(...kitchenTicketBytes));
+      const cashierB64 = btoa(String.fromCharCode(...cashierTicketBytes));
 
       console.log('Sending cancellation tickets to printers...');
 
