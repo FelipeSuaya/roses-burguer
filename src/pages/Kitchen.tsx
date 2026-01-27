@@ -508,7 +508,7 @@ const Kitchen = () => {
                      </div>
 
                      <div className="space-y-2">
-                      {order.direccion_envio && order.direccion_envio.toLowerCase() !== 'retiro por local' && (
+                      {order.direccion_envio && order.direccion_envio.toLowerCase() !== 'retiro por local' ? (
                         <>
                           {order.cadete_salio ? (
                             <Badge variant="default" className="w-full py-2 justify-center">
@@ -522,6 +522,23 @@ const Kitchen = () => {
                               size="lg"
                             >
                               🚴 Cadete Salió
+                            </Button>
+                          )}
+                        </>
+                      ) : order.direccion_envio?.toLowerCase() === 'retiro por local' && (
+                        <>
+                          {order.cadete_salio ? (
+                            <Badge variant="default" className="w-full py-2 justify-center">
+                              ✅ Listo para retirar
+                            </Badge>
+                          ) : (
+                            <Button 
+                              onClick={() => markCadeteSalio(order.id)}
+                              variant="outline"
+                              className="w-full"
+                              size="lg"
+                            >
+                              📦 Listo para retirar
                             </Button>
                           )}
                         </>
