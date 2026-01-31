@@ -8,3 +8,42 @@
     "1 Ruby Clove triple con papas fritas agregado queso extra"
   ]
 }
+
+// ================================
+// EJEMPLOS DE NUEVOS FORMATOS:
+// ================================
+
+// PEDIDO PROGRAMADO (para las 21:30)
+// {
+//   "nombre": "María García",
+//   "telefono": "5493412345678",
+//   "monto": 25000,
+//   "metodo_pago": "efectivo",
+//   "hora_programada": "21:30",
+//   "items": [...]
+// }
+
+// PAGO MIXTO (30000 transferencia + 20000 efectivo)
+// {
+//   "nombre": "Carlos López",
+//   "telefono": "5493418765432",
+//   "monto": 50000,
+//   "metodo_pago": [
+//     { "metodo": "transferencia", "monto": 30000 },
+//     { "metodo": "efectivo", "monto": 20000 }
+//   ],
+//   "items": [...]
+// }
+
+// PEDIDO PROGRAMADO + PAGO MIXTO
+// {
+//   "nombre": "Ana Martínez",
+//   "telefono": "5493419876543",
+//   "monto": 45000,
+//   "hora_programada": "20:00",
+//   "metodo_pago": [
+//     { "metodo": "transferencia", "monto": 25000 },
+//     { "metodo": "efectivo", "monto": 20000 }
+//   ],
+//   "items": [...]
+// }
