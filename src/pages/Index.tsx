@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistance } from "date-fns";
 import { es } from "date-fns/locale";
 import { Check, Clock, DollarSign, ChefHat, Printer } from "lucide-react";
+import { formatPaymentMethod } from "@/lib/formatPaymentMethod";
 
 interface OrderItem {
   quantity: number;
@@ -630,12 +631,9 @@ const Index = () => {
                 <DollarSign className="w-3 h-3 mr-1" />
                 ${order.monto}
               </Badge>
-              <Badge 
-                variant="secondary"
-                className="text-xs"
-              >
-                💵 {order.metodo_pago || 'efectivo'}
-              </Badge>
+              <div className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
+                {formatPaymentMethod(order.metodo_pago)}
+              </div>
             </div>
           </div>
         </CardHeader>
