@@ -139,6 +139,13 @@ serve(async (req) => {
     // Track webhook errors
     const webhookErrors = [];
     
+    // Helper function to detect if order is pickup
+    const isPickupOrder = (direccion: string | null): boolean => {
+      if (!direccion) return false;
+      const lower = direccion.toLowerCase();
+      return lower.includes('retira') || lower.includes('retiro') || lower.includes('local');
+    };
+
     // Helper function to generate ESC/POS ticket
     const generateTicket = (type: 'kitchen' | 'cashier'): Uint8Array => {
       const bytes: number[] = [];
@@ -182,6 +189,15 @@ serve(async (req) => {
           addText(`PROGRAMADO: ${data.hora_programada}`);
           addBytes(...BOLD_OFF, LF);
         }
+        
+        // Delivery/Pickup indicator
+        addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+        if (isPickupOrder(data.direccion_envio)) {
+          addText('RETIRA EN LOCAL');
+        } else {
+          addText('ENVIO');
+        }
+        addBytes(...BOLD_OFF, LF);
         
         addLine();
         addBytes(...BOLD_ON);
