@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { order_number, nombre, items, monto, telefono, direccion_envio, metodo_pago } = raw;
+    const { order_number, nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
 
     if (!order_number) {
       return new Response(
@@ -83,7 +83,19 @@ Deno.serve(async (req) => {
     if (monto !== undefined) updateData.monto = monto;
     if (telefono !== undefined) updateData.telefono = telefono;
     if (direccion_envio !== undefined) updateData.direccion_envio = direccion_envio;
-    if (metodo_pago !== undefined) updateData.metodo_pago = metodo_pago;
+    if (hora_programada !== undefined) updateData.hora_programada = hora_programada;
+    
+    // Handle metodo_pago - can be string or array for mixed payments
+    if (metodo_pago !== undefined) {
+      if (Array.isArray(metodo_pago)) {
+        // Mixed payment: format as "30000 transferencia, 20000 efectivo"
+        updateData.metodo_pago = metodo_pago
+          .map((p: { metodo: string; monto: number }) => `${p.monto.toLocaleString('es-AR')} ${p.metodo}`)
+          .join(', ');
+      } else {
+        updateData.metodo_pago = metodo_pago;
+      }
+    }
 
     // Update the order using the specific ID
     const { data: updatedOrder, error: updateError } = await supabase
@@ -107,11 +119,12 @@ Deno.serve(async (req) => {
     const webhookErrors: Array<{ type: string; error: string }> = [];
 
     try {
-      // Check if non-item fields changed (direccion_envio, telefono, metodo_pago)
+      // Check if non-item fields changed (direccion_envio, telefono, metodo_pago, hora_programada)
       const addressChanged = direccion_envio !== undefined && direccion_envio !== existingOrder.direccion_envio;
       const phoneChanged = telefono !== undefined && telefono !== existingOrder.telefono;
-      const paymentChanged = metodo_pago !== undefined && metodo_pago !== existingOrder.metodo_pago;
-      const nonItemFieldsChanged = addressChanged || phoneChanged || paymentChanged;
+      const paymentChanged = metodo_pago !== undefined;
+      const scheduledChanged = hora_programada !== undefined && hora_programada !== existingOrder.hora_programada;
+      const nonItemFieldsChanged = addressChanged || phoneChanged || paymentChanged || scheduledChanged;
 
       if (Array.isArray(items)) {
         const oldItems = Array.isArray(existingOrder.items) ? existingOrder.items as any[] : [];
@@ -189,6 +202,7 @@ Deno.serve(async (req) => {
           addressChanged,
           phoneChanged,
           paymentChanged,
+          scheduledChanged,
         });
         if (hasChanges) {
           const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
@@ -237,6 +251,15 @@ Deno.serve(async (req) => {
                 addBytes(...DOUBLE_SIZE, ...BOLD_ON);
                 addText('COCINA');
                 addBytes(...BOLD_OFF, LF);
+                
+                // Scheduled order banner
+                const scheduled = updatedOrder?.hora_programada || existingOrder.hora_programada;
+                if (scheduled) {
+                  addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+                  addText(`PROGRAMADO: ${scheduled}`);
+                  addBytes(...BOLD_OFF, LF);
+                }
+                
                 newLine();
                 addText('MODIFICACION');
                 newLine();
@@ -304,6 +327,15 @@ Deno.serve(async (req) => {
               addBytes(...DOUBLE_SIZE, ...BOLD_ON);
               addText('CAJA');
               addBytes(...BOLD_OFF, LF);
+              
+              // Scheduled order banner
+              const scheduled = updatedOrder?.hora_programada || existingOrder.hora_programada;
+              if (scheduled) {
+                addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+                addText(`PROGRAMADO: ${scheduled}`);
+                addBytes(...BOLD_OFF, LF);
+              }
+              
               newLine();
               addText('MODIFICACION');
               newLine();

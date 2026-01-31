@@ -56,6 +56,7 @@ export type Database = {
           created_at: string
           direccion_envio: string | null
           fecha: string
+          hora_programada: string | null
           id: string
           item_status: Json | null
           items: Json | null
@@ -71,6 +72,7 @@ export type Database = {
           created_at?: string
           direccion_envio?: string | null
           fecha?: string
+          hora_programada?: string | null
           id?: string
           item_status?: Json | null
           items?: Json | null
@@ -86,6 +88,7 @@ export type Database = {
           created_at?: string
           direccion_envio?: string | null
           fecha?: string
+          hora_programada?: string | null
           id?: string
           item_status?: Json | null
           items?: Json | null

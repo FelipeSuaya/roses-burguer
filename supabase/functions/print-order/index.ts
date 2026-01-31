@@ -62,6 +62,14 @@ serve(async (req) => {
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('COCINA');
         addBytes(...BOLD_OFF, LF);
+        
+        // Scheduled order banner
+        if (orderData.hora_programada) {
+          addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+          addText(`PROGRAMADO: ${orderData.hora_programada}`);
+          addBytes(...BOLD_OFF, LF);
+        }
+        
         addLine();
         addBytes(...BOLD_ON);
         addText(`PEDIDO #${orderData.order_number}`);
@@ -92,6 +100,14 @@ serve(async (req) => {
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
         addBytes(...BOLD_OFF, LF);
+        
+        // Scheduled order banner
+        if (orderData.hora_programada) {
+          addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+          addText(`PROGRAMADO: ${orderData.hora_programada}`);
+          addBytes(...BOLD_OFF, LF);
+        }
+        
         addLine();
         addBytes(...BOLD_ON);
         addText(`PEDIDO #${orderData.order_number}`);

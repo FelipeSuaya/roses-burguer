@@ -39,6 +39,7 @@ interface Order {
   order_number: number;
   metodo_pago?: string;
   cadete_salio?: boolean;
+  hora_programada?: string;
 }
 
 const Index = () => {
@@ -602,6 +603,12 @@ const Index = () => {
         }}
       >
         <CardHeader className="pb-3">
+          {/* Scheduled order banner */}
+          {order.hora_programada && (
+            <div className="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-2 rounded-md mb-3 text-center">
+              <span className="font-bold text-lg">🕐 PROGRAMADO: {order.hora_programada}</span>
+            </div>
+          )}
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-lg">{order.nombre}</CardTitle>
@@ -624,10 +631,10 @@ const Index = () => {
                 ${order.monto}
               </Badge>
               <Badge 
-                variant={order.metodo_pago === 'transferencia' ? 'default' : 'secondary'}
+                variant="secondary"
                 className="text-xs"
               >
-                {order.metodo_pago === 'transferencia' ? '💳' : '💵'} {order.metodo_pago || 'efectivo'}
+                💵 {order.metodo_pago || 'efectivo'}
               </Badge>
             </div>
           </div>

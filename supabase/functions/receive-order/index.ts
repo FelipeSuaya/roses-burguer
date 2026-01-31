@@ -46,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    const { nombre, items, monto, telefono, direccion_envio, metodo_pago } = raw;
+    const { nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
 
     if (!nombre || !items || !monto) {
       return new Response(JSON.stringify({ 
@@ -87,6 +87,20 @@ serve(async (req) => {
     const orderNumber = orderNumberData;
     console.log('Generated order number:', orderNumber);
 
+    // Normalize metodo_pago to always be stored as string for display
+    // But we also track the raw value for mixed payments
+    let metodoPagoDisplay = 'efectivo';
+    if (metodo_pago) {
+      if (Array.isArray(metodo_pago)) {
+        // Mixed payment: format as "30000 transferencia, 20000 efectivo"
+        metodoPagoDisplay = metodo_pago
+          .map((p: { metodo: string; monto: number }) => `${p.monto.toLocaleString('es-AR')} ${p.metodo}`)
+          .join(', ');
+      } else {
+        metodoPagoDisplay = metodo_pago;
+      }
+    }
+
     // Insert new order into the database
     const orderData: any = {
       nombre,
@@ -98,7 +112,8 @@ serve(async (req) => {
       fecha: new Date().toISOString(),
       status: 'pending',
       order_number: orderNumber,
-      metodo_pago: metodo_pago || 'efectivo'
+      metodo_pago: metodoPagoDisplay,
+      hora_programada: hora_programada || null
     };
     
     const { data, error } = await supabase
@@ -160,6 +175,14 @@ serve(async (req) => {
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('COCINA');
         addBytes(...BOLD_OFF, LF);
+        
+        // Scheduled order banner
+        if (data.hora_programada) {
+          addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+          addText(`PROGRAMADO: ${data.hora_programada}`);
+          addBytes(...BOLD_OFF, LF);
+        }
+        
         addLine();
         addBytes(...BOLD_ON);
         addText(`PEDIDO #${data.order_number}`);
@@ -192,6 +215,14 @@ serve(async (req) => {
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
         addBytes(...BOLD_OFF, LF);
+        
+        // Scheduled order banner
+        if (data.hora_programada) {
+          addBytes(...DOUBLE_SIZE, ...BOLD_ON);
+          addText(`PROGRAMADO: ${data.hora_programada}`);
+          addBytes(...BOLD_OFF, LF);
+        }
+        
         addLine();
         addBytes(...BOLD_ON);
         addText(`PEDIDO #${data.order_number}`);
