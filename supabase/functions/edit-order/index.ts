@@ -22,12 +22,12 @@ Deno.serve(async (req) => {
       console.log('Raw request body:', rawBody);
       raw = JSON.parse(rawBody);
       console.log('Parsed JSON successfully:', JSON.stringify(raw, null, 2));
-    } catch (parseError) {
+    } catch (parseError: unknown) {
       console.error('JSON Parse Error:', parseError);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid JSON format', 
-          details: parseError.message
+          details: parseError instanceof Error ? parseError.message : 'Unknown error'
         }),
         { 
           status: 400, 
@@ -535,10 +535,10 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in edit-order function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
