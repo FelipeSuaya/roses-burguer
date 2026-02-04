@@ -182,6 +182,13 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         return orderItems.reduce((sum, item) => sum + item.price, 0);
     };
 
+    // Helper function to detect if order is pickup
+    const isPickupOrder = (direccion: string | undefined): boolean => {
+        if (!direccion) return false;
+        const lower = direccion.toLowerCase();
+        return lower.includes('retira') || lower.includes('retiro') || lower.includes('local');
+    };
+
     const generateTicketAndSendToPrinter = async (order: {
         order_number: number;
         nombre: string;
@@ -190,7 +197,6 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         items: any[];
         direccion_envio?: string;
     }) => {
-        const bytes: number[] = [];
         const ESC = 0x1b;
         const GS = 0x1d;
         const LF = 0x0a;
@@ -201,90 +207,153 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         const MEDIUM_SIZE = [ESC, 0x21, 0x10];
         const CUT = [GS, 0x56, 0x00];
 
-        const addBytes = (...b: number[]) => bytes.push(...b);
-        const addText = (text: string) => {
+        const addBytes = (bytes: number[], ...b: number[]) => bytes.push(...b);
+        const addText = (bytes: number[], text: string) => {
             const encoder = new TextEncoder();
-            addBytes(...Array.from(encoder.encode(text)));
+            addBytes(bytes, ...Array.from(encoder.encode(text)));
         };
-        const addLine = () => {
-            addText("================================");
-            addBytes(LF);
+        const addLine = (bytes: number[]) => {
+            addText(bytes, "================================");
+            addBytes(bytes, LF);
         };
-        const newLine = () => addBytes(LF);
+        const newLine = (bytes: number[]) => addBytes(bytes, LF);
 
-        addBytes(...CENTER);
-        addBytes(...DOUBLE_SIZE, ...BOLD_ON);
-        addText("CAJA");
-        addBytes(...BOLD_OFF, LF);
-        addLine();
-        addBytes(...BOLD_ON);
-        addText(`PEDIDO #${order.order_number}`);
-        addBytes(...BOLD_OFF, LF, ...MEDIUM_SIZE);
-        addLine();
-        newLine();
-        addText(`Cliente: ${order.nombre}`);
-        newLine();
-        if (order.direccion_envio) {
-            newLine();
-            addText(`Entrega:`);
-            newLine();
-            addText(`${order.direccion_envio}`);
-            newLine();
+        // Generate KITCHEN ticket
+        const kitchenBytes: number[] = [];
+        addBytes(kitchenBytes, ...CENTER);
+        addBytes(kitchenBytes, ...DOUBLE_SIZE, ...BOLD_ON);
+        addText(kitchenBytes, "COCINA");
+        addBytes(kitchenBytes, ...BOLD_OFF, LF);
+        
+        // Delivery/Pickup indicator
+        addBytes(kitchenBytes, ...DOUBLE_SIZE, ...BOLD_ON);
+        if (isPickupOrder(order.direccion_envio)) {
+            addText(kitchenBytes, "RETIRA EN LOCAL");
+        } else {
+            addText(kitchenBytes, "ENVIO");
         }
-        newLine();
-        addLine();
-        newLine();
+        addBytes(kitchenBytes, ...BOLD_OFF, LF);
+        
+        addLine(kitchenBytes);
+        addBytes(kitchenBytes, ...BOLD_ON);
+        addText(kitchenBytes, `PEDIDO #${order.order_number}`);
+        addBytes(kitchenBytes, ...BOLD_OFF, LF, ...MEDIUM_SIZE);
+        addLine(kitchenBytes);
+        newLine(kitchenBytes);
 
         order.items.forEach((item) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
             if (item.combo) {
                 itemDesc += " (combo)";
             }
-            newLine();
-            addText(itemDesc);
-            newLine();
+            newLine(kitchenBytes);
+            addText(kitchenBytes, itemDesc);
+            newLine(kitchenBytes);
 
             if (item.additions && item.additions.length > 0) {
-                addText(`+ ${item.additions.join(", ")}`);
-                newLine();
+                addText(kitchenBytes, `+ ${item.additions.join(", ")}`);
+                newLine(kitchenBytes);
+            }
+            if (item.removals && item.removals.length > 0) {
+                addText(kitchenBytes, `- ${item.removals.join(", ")}`);
+                newLine(kitchenBytes);
             }
         });
 
-        addLine();
-        newLine();
-        addBytes(...BOLD_ON);
-        addText(`TOTAL: $${parseFloat(order.monto.toString()).toLocaleString("es-AR")}`);
-        addBytes(...BOLD_OFF, LF);
-        newLine();
-        addText(`Pago: ${order.metodo_pago}`);
-        newLine();
+        addBytes(kitchenBytes, LF, LF, LF, LF, LF);
+        addBytes(kitchenBytes, ...CUT);
 
-        addBytes(LF, LF, LF, LF, LF);
-        addBytes(...CUT);
+        // Generate CASHIER ticket
+        const cashierBytes: number[] = [];
+        addBytes(cashierBytes, ...CENTER);
+        addBytes(cashierBytes, ...DOUBLE_SIZE, ...BOLD_ON);
+        addText(cashierBytes, "CAJA");
+        addBytes(cashierBytes, ...BOLD_OFF, LF);
+        addLine(cashierBytes);
+        addBytes(cashierBytes, ...BOLD_ON);
+        addText(cashierBytes, `PEDIDO #${order.order_number}`);
+        addBytes(cashierBytes, ...BOLD_OFF, LF, ...MEDIUM_SIZE);
+        addLine(cashierBytes);
+        newLine(cashierBytes);
+        addText(cashierBytes, `Cliente: ${order.nombre}`);
+        newLine(cashierBytes);
+        if (order.direccion_envio) {
+            newLine(cashierBytes);
+            addText(cashierBytes, `Entrega:`);
+            newLine(cashierBytes);
+            addText(cashierBytes, `${order.direccion_envio}`);
+            newLine(cashierBytes);
+        }
+        newLine(cashierBytes);
+        addLine(cashierBytes);
+        newLine(cashierBytes);
 
-        const ticketBytes = new Uint8Array(bytes);
-        const ticketBase64 = btoa(String.fromCharCode(...ticketBytes));
+        order.items.forEach((item) => {
+            let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+            if (item.combo) {
+                itemDesc += " (combo)";
+            }
+            newLine(cashierBytes);
+            addText(cashierBytes, itemDesc);
+            newLine(cashierBytes);
 
-        const cashierWebhookUrl = "https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja";
-
-        const response = await fetch(cashierWebhookUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                order_number: order.order_number,
-                ticket: ticketBase64,
-                nombre: order.nombre,
-                monto: order.monto,
-                metodo_pago: order.metodo_pago,
-                items: order.items,
-                direccion_envio: order.direccion_envio,
-            }),
+            if (item.additions && item.additions.length > 0) {
+                addText(cashierBytes, `+ ${item.additions.join(", ")}`);
+                newLine(cashierBytes);
+            }
         });
 
-        if (!response.ok) {
-            throw new Error(`Error al enviar a impresora: ${response.status}`);
+        addLine(cashierBytes);
+        newLine(cashierBytes);
+        addBytes(cashierBytes, ...BOLD_ON);
+        addText(cashierBytes, `TOTAL: $${parseFloat(order.monto.toString()).toLocaleString("es-AR")}`);
+        addBytes(cashierBytes, ...BOLD_OFF, LF);
+        newLine(cashierBytes);
+        addText(cashierBytes, `Pago: ${order.metodo_pago}`);
+        newLine(cashierBytes);
+
+        addBytes(cashierBytes, LF, LF, LF, LF, LF);
+        addBytes(cashierBytes, ...CUT);
+
+        // Convert to base64
+        const kitchenTicketBase64 = btoa(String.fromCharCode(...new Uint8Array(kitchenBytes)));
+        const cashierTicketBase64 = btoa(String.fromCharCode(...new Uint8Array(cashierBytes)));
+
+        const kitchenWebhookUrl = "https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina";
+        const cashierWebhookUrl = "https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja";
+
+        // Send both webhooks in parallel
+        const [kitchenResponse, cashierResponse] = await Promise.all([
+            fetch(kitchenWebhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    order_number: order.order_number,
+                    ticket: kitchenTicketBase64,
+                    nombre: order.nombre,
+                    items: order.items,
+                }),
+            }),
+            fetch(cashierWebhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    order_number: order.order_number,
+                    ticket: cashierTicketBase64,
+                    nombre: order.nombre,
+                    monto: order.monto,
+                    metodo_pago: order.metodo_pago,
+                    items: order.items,
+                    direccion_envio: order.direccion_envio,
+                }),
+            }),
+        ]);
+
+        if (!kitchenResponse.ok) {
+            console.error("Error al enviar a impresora cocina:", kitchenResponse.status);
+        }
+        if (!cashierResponse.ok) {
+            console.error("Error al enviar a impresora caja:", cashierResponse.status);
         }
     };
 

@@ -103,34 +103,34 @@ export type Database = {
       }
       store_data: {
         Row: {
-          id: number
-          created_at: string
           category: string
+          created_at: string
+          display_name: string | null
+          id: number
+          is_active: boolean | null
           key: string
-          display_name: string
-          value: string
-          is_active: boolean
           metadata: Json | null
+          value: string | null
         }
         Insert: {
-          id?: number
-          created_at?: string
           category: string
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_active?: boolean | null
           key: string
-          display_name: string
-          value: string
-          is_active?: boolean
           metadata?: Json | null
+          value?: string | null
         }
         Update: {
-          id?: number
-          created_at?: string
           category?: string
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_active?: boolean | null
           key?: string
-          display_name?: string
-          value?: string
-          is_active?: boolean
           metadata?: Json | null
+          value?: string | null
         }
         Relationships: []
       }
