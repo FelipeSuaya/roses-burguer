@@ -100,11 +100,37 @@ export function useStoreData(category: string) {
     return true;
   };
 
+  const deleteItem = async (id: number) => {
+    const { error } = await supabase
+      .from('store_data')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting item:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el item',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    setItems(prev => prev.filter(item => item.id !== id));
+
+    toast({
+      title: '🗑️ Eliminado',
+      description: 'Item eliminado correctamente',
+    });
+    return true;
+  };
+
   return {
     items,
     loading,
     updateIsActive,
     updateValue,
+    deleteItem,
     refetch: fetchItems,
   };
 }

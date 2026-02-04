@@ -3,13 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import type { StoreDataItem } from '@/hooks/useStoreData';
 
 interface AdminCardProps {
   item: StoreDataItem;
   onToggleActive: (id: number, isActive: boolean) => Promise<boolean>;
   onUpdateValue: (id: number, value: string) => Promise<boolean>;
+  onDelete: (id: number) => Promise<boolean>;
 }
 
 function formatMetadata(item: StoreDataItem): string | null {
@@ -28,11 +40,18 @@ function formatMetadata(item: StoreDataItem): string | null {
   return null;
 }
 
-export function AdminCard({ item, onToggleActive, onUpdateValue }: AdminCardProps) {
+export function AdminCard({ item, onToggleActive, onUpdateValue, onDelete }: AdminCardProps) {
   const metadataInfo = formatMetadata(item);
   const [localValue, setLocalValue] = useState(item.value || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    await onDelete(item.id);
+    setIsDeleting(false);
+  };
 
   const hasChanges = localValue !== (item.value || '');
 
@@ -94,6 +113,35 @@ export function AdminCard({ item, onToggleActive, onUpdateValue }: AdminCardProp
             <Save className="h-5 w-5" />
             <span className="hidden sm:inline ml-2">Guardar</span>
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="lg"
+                className="h-12 px-4 shrink-0"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar este item?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Vas a eliminar "{item.display_name || item.key}". Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>
