@@ -40,6 +40,7 @@ interface Order {
   metodo_pago?: string;
   cadete_salio?: boolean;
   hora_programada?: string;
+  telefono?: string;
 }
 
 const Kitchen = () => {
@@ -202,6 +203,9 @@ const Kitchen = () => {
   };
 
   const markCadeteSalio = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
     const { error } = await supabase
       .from('orders')
       .update({ cadete_salio: true })
@@ -211,18 +215,42 @@ const Kitchen = () => {
       console.error('Error updating cadete status:', error);
       toast({
         title: "Error",
-        description: "No se pudo marcar que el cadete salió",
+        description: "No se pudo marcar el estado",
         variant: "destructive"
       });
-    } else {
-      setOrders(prev => prev.map(o => 
-        o.id === orderId ? { ...o, cadete_salio: true } : o
-      ));
-      toast({
-        title: "Cadete en camino",
-        description: "El cadete ha salido con el pedido",
-      });
+      return;
     }
+
+    // Determine if it's pickup or delivery
+    const direccion = order.direccion_envio?.toLowerCase() || '';
+    const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
+
+    // Notify webhook
+    try {
+      await fetch('https://n8nwebhookx.botec.tech/webhook/notificacion-estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_number: order.order_number,
+          nombre: order.nombre,
+          telefono: order.telefono,
+          tipo: isPickup ? 'retiro' : 'envio',
+          estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
+          direccion_envio: order.direccion_envio,
+        }),
+      });
+    } catch (webhookError) {
+      console.error('Error notifying webhook:', webhookError);
+    }
+
+    setOrders(prev => prev.map(o => 
+      o.id === orderId ? { ...o, cadete_salio: true } : o
+    ));
+    
+    toast({
+      title: isPickup ? "Listo para retirar" : "Cadete en camino",
+      description: isPickup ? "El cliente será notificado" : "El cadete ha salido con el pedido",
+    });
   };
 
   const reprintTicket = async (order: Order) => {
