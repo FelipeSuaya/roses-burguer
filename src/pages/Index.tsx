@@ -245,6 +245,9 @@ const Index = () => {
   };
 
   const markCadeteSalio = async (orderId: string) => {
+    const order = pendingOrders.find(o => o.id === orderId);
+    if (!order) return;
+
     const { error } = await supabase
       .from('orders')
       .update({ cadete_salio: true })
@@ -254,18 +257,51 @@ const Index = () => {
       console.error('Error updating cadete status:', error);
       toast({
         title: "Error",
-        description: "No se pudo marcar que el cadete salió",
+        description: "No se pudo marcar el estado",
         variant: "destructive"
       });
-    } else {
-      setPendingOrders(prev => prev.map(o =>
-        o.id === orderId ? { ...o, cadete_salio: true } : o
-      ));
+      return;
+    }
+
+    // Determine if it's pickup or delivery
+    const direccion = order.direccion_envio?.toLowerCase() || '';
+    const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
+
+    // Notify webhook via Edge Function
+    try {
+      const webhookPayload = {
+        order_number: order.order_number,
+        nombre: order.nombre,
+        telefono: (order as any).telefono,
+        tipo: isPickup ? 'retiro' : 'envio',
+        estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
+        direccion_envio: order.direccion_envio,
+      };
+
+      console.log('Notifying order status webhook:', webhookPayload);
+
+      const { data, error: fnError } = await supabase.functions.invoke('notify-order-status', {
+        body: webhookPayload,
+      });
+
+      if (fnError) throw fnError;
+      console.log('Webhook notify result:', data);
+    } catch (webhookError) {
+      console.error('Error notifying webhook:', webhookError);
       toast({
-        title: "Cadete en camino",
-        description: "El cadete ha salido con el pedido",
+        title: 'Aviso',
+        description: 'El pedido se marcó como listo, pero no se pudo notificar al webhook.',
       });
     }
+
+    setPendingOrders(prev => prev.map(o =>
+      o.id === orderId ? { ...o, cadete_salio: true } : o
+    ));
+
+    toast({
+      title: isPickup ? "Listo para retirar" : "Cadete en camino",
+      description: isPickup ? "El cliente será notificado" : "El cadete ha salido con el pedido",
+    });
   };
 
   const reprintTicket = async (order: Order) => {
