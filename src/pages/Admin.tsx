@@ -15,7 +15,7 @@ const CATEGORIES = [
 ] as const;
 
 function CategoryContent({ category, addLabel }: { category: string; addLabel: string }) {
-  const { items, loading, updateIsActive, updateValue, refetch } = useStoreData(category);
+  const { items, loading, updateIsActive, updateValue, deleteItem, refetch } = useStoreData(category);
 
   if (loading) {
     return (
@@ -53,6 +53,7 @@ function CategoryContent({ category, addLabel }: { category: string; addLabel: s
               item={item}
               onToggleActive={updateIsActive}
               onUpdateValue={updateValue}
+              onDelete={deleteItem}
             />
           ))}
         </div>
