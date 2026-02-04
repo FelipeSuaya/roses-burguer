@@ -227,18 +227,24 @@ const Kitchen = () => {
 
     // Notify webhook
     try {
-      await fetch('https://n8nwebhookx.botec.tech/webhook/notificacion-estado', {
+      const webhookPayload = {
+        order_number: order.order_number,
+        nombre: order.nombre,
+        telefono: order.telefono,
+        tipo: isPickup ? 'retiro' : 'envio',
+        estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
+        direccion_envio: order.direccion_envio,
+      };
+      console.log('Sending webhook notification:', webhookPayload);
+      
+      const response = await fetch('https://n8nwebhookx.botec.tech/webhook/notificacion-estado', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_number: order.order_number,
-          nombre: order.nombre,
-          telefono: order.telefono,
-          tipo: isPickup ? 'retiro' : 'envio',
-          estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
-          direccion_envio: order.direccion_envio,
-        }),
+        body: JSON.stringify(webhookPayload),
+        mode: 'no-cors', // n8n webhooks may not have CORS headers
       });
+      
+      console.log('Webhook notification sent');
     } catch (webhookError) {
       console.error('Error notifying webhook:', webhookError);
     }
