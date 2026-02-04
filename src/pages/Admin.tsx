@@ -1,49 +1,62 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminCard } from '@/components/admin/AdminCard';
+import { AddItemDialog } from '@/components/admin/AddItemDialog';
 import { useStoreData } from '@/hooks/useStoreData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 const CATEGORIES = [
-  { value: 'sabor_hamburguesa', label: '🍔 Burgers' },
-  { value: 'extra', label: '🍟 Extras' },
-  { value: 'regla_precio', label: '💰 Precios' },
-  { value: 'regla_demora', label: '🕒 Demoras' },
-  { value: 'promo', label: '🔥 Promos' },
+  { value: 'sabor_hamburguesa', label: '🍔 Burgers', addLabel: 'Burger' },
+  { value: 'extra', label: '🍟 Extras', addLabel: 'Extra' },
+  { value: 'regla_precio', label: '💰 Precios', addLabel: 'Precio' },
+  { value: 'regla_demora', label: '🕒 Demoras', addLabel: 'Demora' },
+  { value: 'promo', label: '🔥 Promos', addLabel: 'Promo' },
 ] as const;
 
-function CategoryContent({ category }: { category: string }) {
-  const { items, loading, updateIsActive, updateValue } = useStoreData(category);
+function CategoryContent({ category, addLabel }: { category: string; addLabel: string }) {
+  const { items, loading, updateIsActive, updateValue, refetch } = useStoreData(category);
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        No hay items en esta categoría
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Skeleton className="h-12 w-40" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <AdminCard
-          key={item.id}
-          item={item}
-          onToggleActive={updateIsActive}
-          onUpdateValue={updateValue}
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddItemDialog
+          category={category}
+          categoryLabel={addLabel}
+          onItemAdded={refetch}
         />
-      ))}
+      </div>
+      {items.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          No hay items en esta categoría
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <AdminCard
+              key={item.id}
+              item={item}
+              onToggleActive={updateIsActive}
+              onUpdateValue={updateValue}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -80,7 +93,7 @@ export default function Admin() {
 
           {CATEGORIES.map((cat) => (
             <TabsContent key={cat.value} value={cat.value}>
-              <CategoryContent category={cat.value} />
+              <CategoryContent category={cat.value} addLabel={cat.addLabel} />
             </TabsContent>
           ))}
         </Tabs>
