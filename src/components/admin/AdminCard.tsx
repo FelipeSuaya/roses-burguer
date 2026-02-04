@@ -55,18 +55,16 @@ export function AdminCard({ item, onToggleActive, onUpdateValue }: AdminCardProp
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg md:text-xl font-bold truncate">
-              {metadataInfo || item.display_name || item.key}
-            </CardTitle>
-            {metadataInfo && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Demora: {item.value}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-col gap-3">
+          <CardTitle className="text-lg md:text-xl font-bold leading-tight">
+            {metadataInfo || item.display_name || item.key}
+          </CardTitle>
+          {metadataInfo && (
+            <p className="text-sm text-muted-foreground">
+              Demora: {item.value}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
             <span className={`text-sm font-medium ${item.is_active ? 'text-green-600' : 'text-muted-foreground'}`}>
               {item.is_active ? 'Activo' : 'Pausado'}
             </span>
