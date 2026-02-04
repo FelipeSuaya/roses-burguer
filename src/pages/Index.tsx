@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistance } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, Clock, DollarSign, ChefHat, Printer } from "lucide-react";
+import { Check, Clock, DollarSign, ChefHat, Printer, Plus } from "lucide-react";
 import { formatPaymentMethod } from "@/lib/formatPaymentMethod";
+import { ManualOrderDialog } from "@/components/ManualOrderDialog";
 
 interface OrderItem {
   quantity: number;
@@ -46,6 +47,7 @@ interface Order {
 const Index = () => {
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,13 +58,13 @@ const Index = () => {
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
-      
+
       const { data: completed, error: completedError } = await supabase
         .from('orders')
         .select('*')
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
-      
+
       if (pendingError) console.error('Error fetching pending orders:', pendingError);
       else {
         const typedPending = (pending || []).map(order => ({
@@ -72,7 +74,7 @@ const Index = () => {
         }));
         setPendingOrders(typedPending);
       }
-      
+
       if (completedError) console.error('Error fetching completed orders:', completedError);
       else {
         const typedCompleted = (completed || []).map(order => ({
@@ -101,7 +103,7 @@ const Index = () => {
           const newOrder = payload.new as Order;
           if (newOrder.status === 'pending') {
             setPendingOrders(prev => [newOrder, ...prev]);
-            
+
             toast({
               title: "¡Nuevo Pedido!",
               description: `${newOrder.nombre} - $${newOrder.monto}`,
@@ -121,26 +123,26 @@ const Index = () => {
           console.log('Order UPDATE:', payload);
           const raw = payload.new as any;
           const oldRaw = payload.old as any;
-          
+
           const updatedOrder: Order = {
             ...raw,
             items: Array.isArray(raw.items) ? (raw.items as OrderItem[]) : undefined,
             item_status: Array.isArray(raw.item_status) ? (raw.item_status as ItemStatus[]) : undefined,
           };
-          
+
           const oldOrder: Order = {
             ...oldRaw,
             items: Array.isArray(oldRaw.items) ? (oldRaw.items as OrderItem[]) : undefined,
             item_status: Array.isArray(oldRaw.item_status) ? (oldRaw.item_status as ItemStatus[]) : undefined,
           };
-          
+
           if (updatedOrder.status === 'completed') {
             setPendingOrders(prev => prev.filter(order => order.id !== updatedOrder.id));
             setCompletedOrders(prev => [updatedOrder, ...prev]);
           } else {
             // Mezclar los cambios con el pedido existente para no perder campos no enviados en el payload
-            setPendingOrders(prev => 
-              prev.map(order => 
+            setPendingOrders(prev =>
+              prev.map(order =>
                 order.id === updatedOrder.id
                   ? { ...order, ...updatedOrder }
                   : order
@@ -159,7 +161,7 @@ const Index = () => {
         (payload) => {
           console.log('Order DELETE:', payload);
           const deletedOrder = payload.old as Order;
-          
+
           setPendingOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
           setCompletedOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
         }
@@ -195,12 +197,12 @@ const Index = () => {
       });
     } else {
       // Update local state
-      setPendingOrders(prev => prev.map(o => 
-        o.id === orderId 
+      setPendingOrders(prev => prev.map(o =>
+        o.id === orderId
           ? { ...o, item_status: updatedItemStatus }
           : o
       ));
-      
+
       const item = updatedItemStatus[itemIndex];
       const itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
       const action = item.completed ? "completado" : "pendiente";
@@ -256,7 +258,7 @@ const Index = () => {
         variant: "destructive"
       });
     } else {
-      setPendingOrders(prev => prev.map(o => 
+      setPendingOrders(prev => prev.map(o =>
         o.id === orderId ? { ...o, cadete_salio: true } : o
       ));
       toast({
@@ -271,7 +273,7 @@ const Index = () => {
       // Generate ESC/POS ticket for cashier
       const generateCashierTicket = (): Uint8Array => {
         const bytes: number[] = [];
-        
+
         // ESC/POS commands
         const ESC = 0x1B;
         const GS = 0x1D;
@@ -282,7 +284,7 @@ const Index = () => {
         const DOUBLE_SIZE = [ESC, 0x21, 0x30];
         const MEDIUM_SIZE = [ESC, 0x21, 0x10];
         const CUT = [GS, 0x56, 0x00];
-        
+
         const addBytes = (...b: number[]) => bytes.push(...b);
         const addText = (text: string) => {
           const encoder = new TextEncoder();
@@ -293,7 +295,7 @@ const Index = () => {
           addBytes(LF);
         };
         const newLine = () => addBytes(LF);
-        
+
         addBytes(...CENTER);
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
@@ -316,7 +318,7 @@ const Index = () => {
         newLine();
         addLine();
         newLine();
-        
+
         if (order.items) {
           order.items.forEach((item: OrderItem) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
@@ -326,7 +328,7 @@ const Index = () => {
             newLine();
             addText(itemDesc);
             newLine();
-            
+
             if (item.additions && item.additions.length > 0) {
               addText(`+ ${item.additions.join(', ')}`);
               newLine();
@@ -337,7 +339,7 @@ const Index = () => {
             }
           });
         }
-        
+
         addLine();
         newLine();
         addBytes(...BOLD_ON);
@@ -346,10 +348,10 @@ const Index = () => {
         newLine();
         addText(`Pago: ${order.metodo_pago || 'efectivo'}`);
         newLine();
-        
+
         addBytes(LF, LF, LF, LF, LF);
         addBytes(...CUT);
-        
+
         return new Uint8Array(bytes);
       };
 
@@ -358,7 +360,7 @@ const Index = () => {
 
       // Send to cashier webhook only
       const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
-      
+
       const response = await fetch(cashierWebhookUrl, {
         method: 'POST',
         headers: {
@@ -397,7 +399,7 @@ const Index = () => {
     const now = new Date();
     const orderTime = new Date(createdAt);
     const diffInMinutes = Math.floor((now.getTime() - orderTime.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return { text: "Recién llegado", urgent: false };
     if (diffInMinutes < 15) return { text: `${diffInMinutes} min`, urgent: false };
     if (diffInMinutes < 30) return { text: `${diffInMinutes} min`, urgent: true };
@@ -514,8 +516,8 @@ const Index = () => {
           </div>
           
           ${pendingOrders.map((order, index) => {
-            const orderAge = getOrderAge(order.created_at);
-            return `
+      const orderAge = getOrderAge(order.created_at);
+      return `
               <div class="order ${orderAge.urgent ? 'urgent' : ''}">
                 <div class="order-header">
                   PEDIDO #${order.order_number} - ${order.nombre}
@@ -525,37 +527,37 @@ const Index = () => {
                 </div>
                 
                 <div class="items">
-                  ${order.item_status && order.item_status.length > 0 ? 
-                    order.item_status.map((item, idx) => {
-                      const additions = order.items?.[idx]?.additions && order.items[idx].additions!.length > 0 
-                        ? ` (con ${order.items[idx].additions!.join(", ")})` 
-                        : '';
-                      const removals = order.items?.[idx]?.removals && order.items[idx].removals!.length > 0 
-                        ? ` (sin ${order.items[idx].removals!.join(", ")})` 
-                        : '';
-                      const combo = item.combo ? " combo" : "";
-                      return `<div class="item">
+                  ${order.item_status && order.item_status.length > 0 ?
+          order.item_status.map((item, idx) => {
+            const additions = order.items?.[idx]?.additions && order.items[idx].additions!.length > 0
+              ? ` (con ${order.items[idx].additions!.join(", ")})`
+              : '';
+            const removals = order.items?.[idx]?.removals && order.items[idx].removals!.length > 0
+              ? ` (sin ${order.items[idx].removals!.join(", ")})`
+              : '';
+            const combo = item.combo ? " combo" : "";
+            return `<div class="item">
                         <span class="item-name">☐ ${item.burger_type} ${item.patty_size}${combo}${additions}${removals}</span>
                         <span class="item-qty">${item.quantity}x</span>
                       </div>`;
-                    }).join('') :
-                    order.items && order.items.length > 0 ?
-                    order.items.map(item => {
-                      const additions = item.additions && item.additions.length > 0 
-                        ? ` (con ${item.additions.join(", ")})` 
-                        : '';
-                      const removals = item.removals && item.removals.length > 0 
-                        ? ` (sin ${item.removals.join(", ")})` 
-                        : '';
-                      const combo = item.combo ? " combo" : "";
-                      return `<div class="item">
+          }).join('') :
+          order.items && order.items.length > 0 ?
+            order.items.map(item => {
+              const additions = item.additions && item.additions.length > 0
+                ? ` (con ${item.additions.join(", ")})`
+                : '';
+              const removals = item.removals && item.removals.length > 0
+                ? ` (sin ${item.removals.join(", ")})`
+                : '';
+              const combo = item.combo ? " combo" : "";
+              return `<div class="item">
                         <span class="item-name">${item.quantity}x ${item.burger_type} ${item.patty_size}${combo}${additions}${removals}</span>
                       </div>`;
-                    }).join('') :
-                    `<div class="item">
+            }).join('') :
+            `<div class="item">
                       <span class="item-name">Sin items</span>
                     </div>`
-                  }
+        }
                 </div>
                 
                 <div class="delivery">
@@ -568,7 +570,7 @@ const Index = () => {
                 </div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
           
           <div class="footer">
             DOCUMENTO NO VÁLIDO COMO FACTURA<br>
@@ -591,14 +593,13 @@ const Index = () => {
 
   const OrderCard = ({ order, showCompleteButton = true }: { order: Order; showCompleteButton?: boolean }) => {
     const orderAge = getOrderAge(order.created_at);
-    
+
     return (
-      <Card 
-        className={`transition-all duration-500 hover:shadow-lg animate-in fade-in-0 slide-in-from-top-4 ${
-          orderAge.urgent && showCompleteButton
-            ? 'border-kitchen-urgent shadow-md' 
-            : 'border-border'
-        }`}
+      <Card
+        className={`transition-all duration-500 hover:shadow-lg animate-in fade-in-0 slide-in-from-top-4 ${orderAge.urgent && showCompleteButton
+          ? 'border-kitchen-urgent shadow-md'
+          : 'border-border'
+          }`}
         style={{
           animationDelay: `${Math.random() * 500}ms`
         }}
@@ -619,7 +620,7 @@ const Index = () => {
             </div>
             <div className="flex flex-col gap-2 items-end">
               {showCompleteButton && (
-                <Badge 
+                <Badge
                   variant={orderAge.urgent ? "destructive" : "secondary"}
                   className="text-xs"
                 >
@@ -651,23 +652,22 @@ const Index = () => {
                       variant={item.completed ? "default" : "outline"}
                       size="sm"
                       onClick={() => toggleItemCompleted(order.id, index)}
-                      className={`flex items-center gap-2 ${
-                        item.completed 
-                          ? "bg-success text-success-foreground hover:bg-success/90" 
-                          : "hover:bg-muted-foreground/10"
-                      }`}
-                     >
-                       <Check className={`w-3 h-3 ${item.completed ? "opacity-100" : "opacity-30"}`} />
-                       <span className={`text-xs ${item.completed ? "line-through" : ""}`}>
-                         {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? "combo" : ""}
-                         {order.items?.[index]?.additions && order.items[index].additions!.length > 0 && 
-                           ` (con ${order.items[index].additions!.join(", ")})`
-                         }
-                         {order.items?.[index]?.removals && order.items[index].removals!.length > 0 && 
-                           ` (sin ${order.items[index].removals!.join(", ")})`
-                         }
-                       </span>
-                     </Button>
+                      className={`flex items-center gap-2 ${item.completed
+                        ? "bg-success text-success-foreground hover:bg-success/90"
+                        : "hover:bg-muted-foreground/10"
+                        }`}
+                    >
+                      <Check className={`w-3 h-3 ${item.completed ? "opacity-100" : "opacity-30"}`} />
+                      <span className={`text-xs ${item.completed ? "line-through" : ""}`}>
+                        {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? "combo" : ""}
+                        {order.items?.[index]?.additions && order.items[index].additions!.length > 0 &&
+                          ` (con ${order.items[index].additions!.join(", ")})`
+                        }
+                        {order.items?.[index]?.removals && order.items[index].removals!.length > 0 &&
+                          ` (sin ${order.items[index].removals!.join(", ")})`
+                        }
+                      </span>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -704,11 +704,11 @@ const Index = () => {
               {order.direccion_envio || "Sin dirección de envío especificada"}
             </p>
           </div>
-          
+
           <div className="text-xs text-muted-foreground">
-            {showCompleteButton ? 'Recibido' : 'Completado'}: {formatDistance(new Date(order.created_at), new Date(), { 
-              addSuffix: true, 
-              locale: es 
+            {showCompleteButton ? 'Recibido' : 'Completado'}: {formatDistance(new Date(order.created_at), new Date(), {
+              addSuffix: true,
+              locale: es
             })}
           </div>
 
@@ -717,7 +717,7 @@ const Index = () => {
               {(() => {
                 const direccion = order.direccion_envio?.toLowerCase() || '';
                 const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
-                
+
                 if (!isPickup && order.direccion_envio) {
                   // Delivery order
                   return order.cadete_salio ? (
@@ -725,7 +725,7 @@ const Index = () => {
                       🚴 Cadete en camino
                     </Badge>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => markCadeteSalio(order.id)}
                       variant="outline"
                       className="w-full"
@@ -741,7 +741,7 @@ const Index = () => {
                       ✅ Listo para retirar
                     </Badge>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => markCadeteSalio(order.id)}
                       variant="outline"
                       className="w-full"
@@ -753,7 +753,7 @@ const Index = () => {
                 }
                 return null;
               })()}
-              <Button 
+              <Button
                 onClick={() => markAsCompleted(order.id)}
                 className="w-full bg-success hover:bg-success/90 text-success-foreground"
                 size="lg"
@@ -763,9 +763,9 @@ const Index = () => {
               </Button>
             </div>
           )}
-          
+
           {order.id && (
-            <Button 
+            <Button
               onClick={() => reprintTicket(order)}
               variant="outline"
               className="w-full"
@@ -785,14 +785,21 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <img 
-              src="/lovable-uploads/86ac5a9c-d0bd-40ac-88b0-07fc04f59e14.png" 
-              alt="Roses Burgers Logo" 
+            <img
+              src="/lovable-uploads/86ac5a9c-d0bd-40ac-88b0-07fc04f59e14.png"
+              alt="Roses Burgers Logo"
               className="h-16 w-auto"
             />
             <h1 className="text-5xl font-bold text-foreground">
               ROSES BURGERS
             </h1>
+            <Button
+              onClick={() => setManualOrderDialogOpen(true)}
+              size="lg"
+              className="ml-4 rounded-full h-14 w-14 bg-success hover:bg-success/90"
+            >
+              <Plus className="h-8 w-8" />
+            </Button>
           </div>
           <p className="text-xl text-muted-foreground mb-6">
             Sistema de gestión de pedidos en tiempo real
@@ -825,7 +832,7 @@ const Index = () => {
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-end">
-                  <Button 
+                  <Button
                     onClick={printPendingOrders}
                     variant="outline"
                     className="flex items-center gap-2"
@@ -864,6 +871,11 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <ManualOrderDialog
+        open={manualOrderDialogOpen}
+        onOpenChange={setManualOrderDialogOpen}
+      />
     </div>
   );
 };

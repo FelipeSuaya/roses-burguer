@@ -101,6 +101,39 @@ export type Database = {
         }
         Relationships: []
       }
+      store_data: {
+        Row: {
+          id: number
+          created_at: string
+          category: string
+          key: string
+          display_name: string
+          value: string
+          is_active: boolean
+          metadata: Json | null
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          category: string
+          key: string
+          display_name: string
+          value: string
+          is_active?: boolean
+          metadata?: Json | null
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          category?: string
+          key?: string
+          display_name?: string
+          value?: string
+          is_active?: boolean
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
