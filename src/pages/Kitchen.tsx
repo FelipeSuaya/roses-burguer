@@ -225,7 +225,7 @@ const Kitchen = () => {
     const direccion = order.direccion_envio?.toLowerCase() || '';
     const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
 
-    // Notify webhook
+    // Notify webhook (via Edge Function to avoid browser CORS/no-cors limitations)
     try {
       const webhookPayload = {
         order_number: order.order_number,
@@ -235,18 +235,21 @@ const Kitchen = () => {
         estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
         direccion_envio: order.direccion_envio,
       };
-      console.log('Sending webhook notification:', webhookPayload);
-      
-      const response = await fetch('https://n8nwebhookx.botec.tech/webhook/notificacion-estado', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookPayload),
-        mode: 'no-cors', // n8n webhooks may not have CORS headers
+
+      console.log('Notifying order status webhook:', webhookPayload);
+
+      const { data, error } = await supabase.functions.invoke('notify-order-status', {
+        body: webhookPayload,
       });
-      
-      console.log('Webhook notification sent');
+
+      if (error) throw error;
+      console.log('Webhook notify result:', data);
     } catch (webhookError) {
       console.error('Error notifying webhook:', webhookError);
+      toast({
+        title: 'Aviso',
+        description: 'El pedido se marcó como listo, pero no se pudo notificar al webhook.',
+      });
     }
 
     setOrders(prev => prev.map(o => 
