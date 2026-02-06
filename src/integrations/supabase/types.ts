@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_whitelist: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       n8n_chat_histories: {
         Row: {
           id: number

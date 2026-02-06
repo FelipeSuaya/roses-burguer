@@ -4,7 +4,7 @@ import { AddItemDialog } from '@/components/admin/AddItemDialog';
 import { useStoreData } from '@/hooks/useStoreData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Settings } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'sabor_hamburguesa', label: '🍔 Burgers', addLabel: 'Burger' },
@@ -75,7 +75,14 @@ export default function Admin() {
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">Volver</span>
           </Link>
-          <h1 className="text-2xl md:text-3xl font-bold">Panel de Administración</h1>
+          <h1 className="text-2xl md:text-3xl font-bold flex-1">Panel de Administración</h1>
+          <Link
+            to="/admin/whitelist"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Gestionar acceso de usuarios"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
         </div>
 
         {/* Tabs */}
