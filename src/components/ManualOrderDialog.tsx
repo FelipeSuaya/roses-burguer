@@ -67,6 +67,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
     // Form state
     const [customerName, setCustomerName] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("+549");
     const [deliveryAddress, setDeliveryAddress] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("efectivo");
 
@@ -74,7 +75,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     const [selectedFlavor, setSelectedFlavor] = useState("");
     const [selectedPricing, setSelectedPricing] = useState("");
     const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-    const [removalsText, setRemovalsText] = useState("");
+    const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
     const [currentQuantity, setCurrentQuantity] = useState(1);
 
     // Order items
@@ -82,6 +83,20 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
     // UI state
     const [extrasOpen, setExtrasOpen] = useState(false);
+    const [removalsOpen, setRemovalsOpen] = useState(false);
+
+    // Get ingredients for selected burger
+    const getAvailableIngredients = (): string[] => {
+        if (!selectedFlavor) return [];
+        const burger = burgerFlavors.find(b => b.key === selectedFlavor);
+        if (!burger?.metadata?.ingredientes) return [];
+
+        // Parse ingredients string and clean up
+        return burger.metadata.ingredientes
+            .split(',')
+            .map(ing => ing.trim())
+            .filter(Boolean);
+    };
 
     // Fetch store data on mount
     useEffect(() => {
@@ -89,6 +104,11 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             fetchStoreData();
         }
     }, [open]);
+
+    // Clear removals when flavor changes
+    useEffect(() => {
+        setSelectedRemovals([]);
+    }, [selectedFlavor]);
 
     const fetchStoreData = async () => {
         setLoading(true);
@@ -153,7 +173,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             quantity: currentQuantity,
             price: getItemPrice() * currentQuantity,
             additions: selectedExtras,
-            removals: removalsText.trim() ? removalsText.trim().split(',').map(r => r.trim()).filter(Boolean) : [],
+            removals: selectedRemovals,
         };
 
         setOrderItems([...orderItems, newItem]);
@@ -162,7 +182,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         setSelectedFlavor("");
         setSelectedPricing("");
         setSelectedExtras([]);
-        setRemovalsText("");
+        setSelectedRemovals([]);
         setCurrentQuantity(1);
 
         toast({
@@ -183,6 +203,14 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         }
     };
 
+    const toggleRemoval = (ingredient: string) => {
+        if (selectedRemovals.includes(ingredient)) {
+            setSelectedRemovals(selectedRemovals.filter((r) => r !== ingredient));
+        } else {
+            setSelectedRemovals([...selectedRemovals, ingredient]);
+        }
+    };
+
 
     const getTotalPrice = (): number => {
         return orderItems.reduce((sum, item) => sum + item.price, 0);
@@ -198,6 +226,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     const generateTicketAndSendToPrinter = async (order: {
         order_number: number;
         nombre: string;
+        telefono?: string;
         monto: number;
         metodo_pago: string;
         items: any[];
@@ -230,7 +259,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         addBytes(kitchenBytes, ...DOUBLE_SIZE, ...BOLD_ON);
         addText(kitchenBytes, "COCINA");
         addBytes(kitchenBytes, ...BOLD_OFF, LF);
-        
+
         // Delivery/Pickup indicator
         addBytes(kitchenBytes, ...DOUBLE_SIZE, ...BOLD_ON);
         if (isPickupOrder(order.direccion_envio)) {
@@ -239,7 +268,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             addText(kitchenBytes, "ENVIO");
         }
         addBytes(kitchenBytes, ...BOLD_OFF, LF);
-        
+
         addLine(kitchenBytes);
         addBytes(kitchenBytes, ...BOLD_ON);
         addText(kitchenBytes, `PEDIDO #${order.order_number}`);
@@ -283,6 +312,10 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         newLine(cashierBytes);
         addText(cashierBytes, `Cliente: ${order.nombre}`);
         newLine(cashierBytes);
+        if (order.telefono) {
+            addText(cashierBytes, `Teléfono: ${order.telefono}`);
+            newLine(cashierBytes);
+        }
         if (order.direccion_envio) {
             newLine(cashierBytes);
             addText(cashierBytes, `Entrega:`);
@@ -305,6 +338,10 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
             if (item.additions && item.additions.length > 0) {
                 addText(cashierBytes, `+ ${item.additions.join(", ")}`);
+                newLine(cashierBytes);
+            }
+            if (item.removals && item.removals.length > 0) {
+                addText(cashierBytes, `- ${item.removals.join(", ")}`);
                 newLine(cashierBytes);
             }
         });
@@ -337,6 +374,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                     order_number: order.order_number,
                     ticket: kitchenTicketBase64,
                     nombre: order.nombre,
+                    telefono: order.telefono,
                     items: order.items,
                 }),
             }),
@@ -347,6 +385,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                     order_number: order.order_number,
                     ticket: cashierTicketBase64,
                     nombre: order.nombre,
+                    telefono: order.telefono,
                     monto: order.monto,
                     metodo_pago: order.metodo_pago,
                     items: order.items,
@@ -416,6 +455,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                 .from("orders")
                 .insert({
                     nombre: customerName.trim(),
+                    telefono: phoneNumber.trim() || null,
                     monto: totalMonto,
                     status: "pending",
                     items: dbItems,
@@ -434,6 +474,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             await generateTicketAndSendToPrinter({
                 order_number: orderNumber,
                 nombre: customerName.trim(),
+                telefono: phoneNumber.trim(),
                 monto: totalMonto,
                 metodo_pago: paymentMethod,
                 items: dbItems,
@@ -447,13 +488,14 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
             // Reset form
             setCustomerName("");
+            setPhoneNumber("+549");
             setDeliveryAddress("");
             setPaymentMethod("efectivo");
             setOrderItems([]);
             setSelectedFlavor("");
             setSelectedPricing("");
             setSelectedExtras([]);
-            setRemovalsText("");
+            setSelectedRemovals([]);
             setCurrentQuantity(1);
 
             onOrderCreated?.();
@@ -492,6 +534,17 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label htmlFor="phoneNumber">Teléfono *</Label>
+                                    <Input
+                                        id="phoneNumber"
+                                        placeholder="+549..."
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
                                     <Label htmlFor="paymentMethod">Método de Pago</Label>
                                     <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                                         <SelectTrigger>
@@ -505,15 +558,15 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="deliveryAddress">Dirección de Envío (opcional)</Label>
-                                <Input
-                                    id="deliveryAddress"
-                                    placeholder="Ej: Av. Corrientes 1234, CABA"
-                                    value={deliveryAddress}
-                                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                                />
+                                <div className="space-y-2">
+                                    <Label htmlFor="deliveryAddress">Dirección de Envío (opcional)</Label>
+                                    <Input
+                                        id="deliveryAddress"
+                                        placeholder="Ej: Av. Corrientes 1234, CABA"
+                                        value={deliveryAddress}
+                                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -605,15 +658,35 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         </CollapsibleContent>
                                     </Collapsible>
 
-                                    <div className="space-y-2">
-                                        <Label>Quitar ingredientes</Label>
-                                        <Input
-                                            placeholder="Ej: sin queso, sin cebolla"
-                                            value={removalsText}
-                                            onChange={(e) => setRemovalsText(e.target.value)}
-                                        />
-                                        <p className="text-xs text-muted-foreground">Separar con comas</p>
-                                    </div>
+                                    <Collapsible open={removalsOpen} onOpenChange={setRemovalsOpen}>
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" className="w-full justify-between p-0 h-auto font-normal">
+                                                <Label className="cursor-pointer">Quitar ingredientes {selectedRemovals.length > 0 && `(${selectedRemovals.length} seleccionados)`}</Label>
+                                                <ChevronDown className={`h-4 w-4 transition-transform ${removalsOpen ? 'rotate-180' : ''}`} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent className="pt-2">
+                                            {selectedFlavor ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {getAvailableIngredients().map((ingredient, index) => (
+                                                        <Badge
+                                                            key={index}
+                                                            variant={selectedRemovals.includes(ingredient) ? "destructive" : "outline"}
+                                                            className="cursor-pointer"
+                                                            onClick={() => toggleRemoval(ingredient)}
+                                                        >
+                                                            {ingredient}
+                                                        </Badge>
+                                                    ))}
+                                                    {getAvailableIngredients().length === 0 && (
+                                                        <p className="text-sm text-muted-foreground">No hay ingredientes disponibles para este sabor</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">Primero seleccioná un sabor de hamburguesa</p>
+                                            )}
+                                        </CollapsibleContent>
+                                    </Collapsible>
 
                                     {selectedFlavor && selectedPricing && (
                                         <div className="flex items-center justify-between pt-2 border-t">
