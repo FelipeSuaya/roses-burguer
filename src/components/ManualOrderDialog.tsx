@@ -44,7 +44,20 @@ interface OrderItemDraft {
     quantity: number;
     price: number;
     additions: string[];
+    removals: string[];
 }
+
+const REMOVAL_OPTIONS = [
+    "Sin queso",
+    "Sin cebolla",
+    "Sin lechuga",
+    "Sin tomate",
+    "Sin mayonesa",
+    "Sin ketchup",
+    "Sin mostaza",
+    "Sin pickles",
+    "Sin pan",
+];
 
 interface ManualOrderDialogProps {
     open: boolean;
@@ -72,6 +85,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     const [selectedFlavor, setSelectedFlavor] = useState("");
     const [selectedPricing, setSelectedPricing] = useState("");
     const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
+    const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
     const [currentQuantity, setCurrentQuantity] = useState(1);
 
     // Order items
@@ -79,6 +93,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
     // UI state
     const [extrasOpen, setExtrasOpen] = useState(false);
+    const [removalsOpen, setRemovalsOpen] = useState(false);
 
     // Fetch store data on mount
     useEffect(() => {
@@ -150,6 +165,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             quantity: currentQuantity,
             price: getItemPrice() * currentQuantity,
             additions: selectedExtras,
+            removals: selectedRemovals,
         };
 
         setOrderItems([...orderItems, newItem]);
@@ -158,6 +174,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         setSelectedFlavor("");
         setSelectedPricing("");
         setSelectedExtras([]);
+        setSelectedRemovals([]);
         setCurrentQuantity(1);
 
         toast({
@@ -175,6 +192,14 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             setSelectedExtras(selectedExtras.filter((e) => e !== extraKey));
         } else {
             setSelectedExtras([...selectedExtras, extraKey]);
+        }
+    };
+
+    const toggleRemoval = (removal: string) => {
+        if (selectedRemovals.includes(removal)) {
+            setSelectedRemovals(selectedRemovals.filter((r) => r !== removal));
+        } else {
+            setSelectedRemovals([...selectedRemovals, removal]);
         }
     };
 
@@ -392,7 +417,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                 patty_size: item.patty_size,
                 combo: item.combo,
                 additions: item.additions.length > 0 ? item.additions : null,
-                removals: null,
+                removals: item.removals.length > 0 ? item.removals : null,
             }));
 
             const itemStatus = orderItems.map((item) => ({
@@ -447,6 +472,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             setSelectedFlavor("");
             setSelectedPricing("");
             setSelectedExtras([]);
+            setSelectedRemovals([]);
             setCurrentQuantity(1);
 
             onOrderCreated?.();
@@ -598,6 +624,29 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         </CollapsibleContent>
                                     </Collapsible>
 
+                                    <Collapsible open={removalsOpen} onOpenChange={setRemovalsOpen}>
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="ghost" className="w-full justify-between p-0 h-auto font-normal">
+                                                <Label className="cursor-pointer">Quitar ingredientes {selectedRemovals.length > 0 && `(${selectedRemovals.length} seleccionados)`}</Label>
+                                                <ChevronDown className={`h-4 w-4 transition-transform ${removalsOpen ? 'rotate-180' : ''}`} />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent className="pt-2">
+                                            <div className="flex flex-wrap gap-2">
+                                                {REMOVAL_OPTIONS.map((removal) => (
+                                                    <Badge
+                                                        key={removal}
+                                                        variant={selectedRemovals.includes(removal) ? "destructive" : "outline"}
+                                                        className="cursor-pointer"
+                                                        onClick={() => toggleRemoval(removal)}
+                                                    >
+                                                        {removal}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </CollapsibleContent>
+                                    </Collapsible>
+
                                     {selectedFlavor && selectedPricing && (
                                         <div className="flex items-center justify-between pt-2 border-t">
                                             <span className="text-muted-foreground">
@@ -632,6 +681,11 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                                 {item.additions.length > 0 && (
                                                     <div className="text-xs text-muted-foreground mt-1">
                                                         + {item.additions.join(", ")}
+                                                    </div>
+                                                )}
+                                                {item.removals.length > 0 && (
+                                                    <div className="text-xs text-destructive mt-1">
+                                                        - {item.removals.join(", ")}
                                                     </div>
                                                 )}
                                             </div>
