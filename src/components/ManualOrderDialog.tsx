@@ -47,17 +47,6 @@ interface OrderItemDraft {
     removals: string[];
 }
 
-const REMOVAL_OPTIONS = [
-    "Sin queso",
-    "Sin cebolla",
-    "Sin lechuga",
-    "Sin tomate",
-    "Sin mayonesa",
-    "Sin ketchup",
-    "Sin mostaza",
-    "Sin pickles",
-    "Sin pan",
-];
 
 interface ManualOrderDialogProps {
     open: boolean;
@@ -85,7 +74,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     const [selectedFlavor, setSelectedFlavor] = useState("");
     const [selectedPricing, setSelectedPricing] = useState("");
     const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-    const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
+    const [removalsText, setRemovalsText] = useState("");
     const [currentQuantity, setCurrentQuantity] = useState(1);
 
     // Order items
@@ -93,7 +82,6 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
     // UI state
     const [extrasOpen, setExtrasOpen] = useState(false);
-    const [removalsOpen, setRemovalsOpen] = useState(false);
 
     // Fetch store data on mount
     useEffect(() => {
@@ -165,7 +153,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             quantity: currentQuantity,
             price: getItemPrice() * currentQuantity,
             additions: selectedExtras,
-            removals: selectedRemovals,
+            removals: removalsText.trim() ? removalsText.trim().split(',').map(r => r.trim()).filter(Boolean) : [],
         };
 
         setOrderItems([...orderItems, newItem]);
@@ -174,7 +162,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         setSelectedFlavor("");
         setSelectedPricing("");
         setSelectedExtras([]);
-        setSelectedRemovals([]);
+        setRemovalsText("");
         setCurrentQuantity(1);
 
         toast({
@@ -195,13 +183,6 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         }
     };
 
-    const toggleRemoval = (removal: string) => {
-        if (selectedRemovals.includes(removal)) {
-            setSelectedRemovals(selectedRemovals.filter((r) => r !== removal));
-        } else {
-            setSelectedRemovals([...selectedRemovals, removal]);
-        }
-    };
 
     const getTotalPrice = (): number => {
         return orderItems.reduce((sum, item) => sum + item.price, 0);
@@ -472,7 +453,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             setSelectedFlavor("");
             setSelectedPricing("");
             setSelectedExtras([]);
-            setSelectedRemovals([]);
+            setRemovalsText("");
             setCurrentQuantity(1);
 
             onOrderCreated?.();
@@ -624,28 +605,15 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         </CollapsibleContent>
                                     </Collapsible>
 
-                                    <Collapsible open={removalsOpen} onOpenChange={setRemovalsOpen}>
-                                        <CollapsibleTrigger asChild>
-                                            <Button variant="ghost" className="w-full justify-between p-0 h-auto font-normal">
-                                                <Label className="cursor-pointer">Quitar ingredientes {selectedRemovals.length > 0 && `(${selectedRemovals.length} seleccionados)`}</Label>
-                                                <ChevronDown className={`h-4 w-4 transition-transform ${removalsOpen ? 'rotate-180' : ''}`} />
-                                            </Button>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent className="pt-2">
-                                            <div className="flex flex-wrap gap-2">
-                                                {REMOVAL_OPTIONS.map((removal) => (
-                                                    <Badge
-                                                        key={removal}
-                                                        variant={selectedRemovals.includes(removal) ? "destructive" : "outline"}
-                                                        className="cursor-pointer"
-                                                        onClick={() => toggleRemoval(removal)}
-                                                    >
-                                                        {removal}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        </CollapsibleContent>
-                                    </Collapsible>
+                                    <div className="space-y-2">
+                                        <Label>Quitar ingredientes</Label>
+                                        <Input
+                                            placeholder="Ej: sin queso, sin cebolla"
+                                            value={removalsText}
+                                            onChange={(e) => setRemovalsText(e.target.value)}
+                                        />
+                                        <p className="text-xs text-muted-foreground">Separar con comas</p>
+                                    </div>
 
                                     {selectedFlavor && selectedPricing && (
                                         <div className="flex items-center justify-between pt-2 border-t">
