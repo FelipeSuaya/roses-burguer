@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Printer, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Printer, ChevronDown, MapPin } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Collapsible,
@@ -68,6 +69,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     // Form state
     const [customerName, setCustomerName] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("+549");
+    const [isPickup, setIsPickup] = useState(false);
     const [deliveryAddress, setDeliveryAddress] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("efectivo");
 
@@ -154,21 +156,25 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
     };
 
     const addItemToOrder = () => {
-        if (!selectedFlavor || !selectedPricing) {
+        // For extras-only items, we don't need a burger flavor/pricing
+        const hasExtras = selectedExtras.length > 0;
+        const hasBurger = selectedFlavor && selectedPricing;
+
+        if (!hasBurger && !hasExtras) {
             toast({
                 title: "Error",
-                description: "Seleccioná un sabor y tipo de hamburguesa",
+                description: "Seleccioná un sabor y tipo de hamburguesa, o al menos un extra",
                 variant: "destructive",
             });
             return;
         }
 
-        const pricingItem = pricingRules.find((p) => p.key === selectedPricing);
+        const pricingItem = hasBurger ? pricingRules.find((p) => p.key === selectedPricing) : null;
         const isCombo = pricingItem?.key.toLowerCase().includes("combo") || false;
 
         const newItem: OrderItemDraft = {
-            burger_type: selectedFlavor,
-            patty_size: pricingItem?.display_name || selectedPricing,
+            burger_type: hasBurger ? selectedFlavor : "Extras",
+            patty_size: pricingItem?.display_name || (hasBurger ? selectedPricing : ""),
             combo: isCombo,
             quantity: currentQuantity,
             price: getItemPrice() * currentQuantity,
@@ -449,7 +455,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             }));
 
             const totalMonto = getTotalPrice();
-
+            const finalAddress = isPickup ? "Retira en local" : (deliveryAddress.trim() || null);
             // Insert order
             const { data: newOrder, error: insertError } = await supabase
                 .from("orders")
@@ -460,7 +466,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                     status: "pending",
                     items: dbItems,
                     item_status: itemStatus,
-                    direccion_envio: deliveryAddress.trim() || null,
+                    direccion_envio: finalAddress,
                     metodo_pago: paymentMethod,
                     order_number: orderNumber,
                     fecha: new Date().toISOString(),
@@ -478,7 +484,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                 monto: totalMonto,
                 metodo_pago: paymentMethod,
                 items: dbItems,
-                direccion_envio: deliveryAddress.trim() || undefined,
+                direccion_envio: finalAddress || undefined,
             });
 
             toast({
@@ -489,6 +495,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
             // Reset form
             setCustomerName("");
             setPhoneNumber("+549");
+            setIsPickup(false);
             setDeliveryAddress("");
             setPaymentMethod("efectivo");
             setOrderItems([]);
@@ -559,7 +566,25 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="deliveryAddress">Dirección de Envío (opcional)</Label>
+                                    <Label>Tipo de Entrega</Label>
+                                    <div className="flex items-center gap-3 h-10">
+                                        <Switch
+                                            checked={isPickup}
+                                            onCheckedChange={(checked) => {
+                                                setIsPickup(checked);
+                                                if (checked) setDeliveryAddress("");
+                                            }}
+                                        />
+                                        <span className="text-sm flex items-center gap-1.5">
+                                            <MapPin className="w-4 h-4" />
+                                            {isPickup ? "Retira en local" : "Envío a domicilio"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {!isPickup && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="deliveryAddress">Dirección de Envío</Label>
                                     <Input
                                         id="deliveryAddress"
                                         placeholder="Ej: Av. Corrientes 1234, CABA"
@@ -567,7 +592,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         onChange={(e) => setDeliveryAddress(e.target.value)}
                                     />
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Add Item Section */}
@@ -688,7 +713,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                         </CollapsibleContent>
                                     </Collapsible>
 
-                                    {selectedFlavor && selectedPricing && (
+                                    {(selectedFlavor && selectedPricing) || selectedExtras.length > 0 ? (
                                         <div className="flex items-center justify-between pt-2 border-t">
                                             <span className="text-muted-foreground">
                                                 Subtotal: ${(getItemPrice() * currentQuantity).toLocaleString("es-AR")}
@@ -698,7 +723,7 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
                                                 Agregar
                                             </Button>
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             )}
                         </div>
