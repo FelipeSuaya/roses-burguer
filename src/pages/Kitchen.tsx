@@ -16,6 +16,7 @@ interface OrderItem {
   combo: boolean;
   additions?: string[] | null;
   removals?: string[] | null;
+  observations?: string | null;
 }
 
 interface ItemStatus {
@@ -510,10 +511,13 @@ const Kitchen = () => {
                                      {order.items?.[index]?.additions && order.items[index].additions!.length > 0 && 
                                        ` (con ${order.items[index].additions!.join(", ")})`
                                      }
-                                     {order.items?.[index]?.removals && order.items[index].removals!.length > 0 && 
-                                       ` (sin ${order.items[index].removals!.join(", ")})`
-                                     }
-                                   </span>
+                                      {order.items?.[index]?.removals && order.items[index].removals!.length > 0 && 
+                                        ` (sin ${order.items[index].removals!.join(", ")})`
+                                      }
+                                      {order.items?.[index]?.observations && 
+                                        ` 📝 ${order.items[index].observations}`
+                                      }
+                                    </span>
                                  </Button>
                               </div>
                             ))}
@@ -530,6 +534,7 @@ const Kitchen = () => {
                                 {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? "combo" : ""}
                                 {item.additions && item.additions.length > 0 && ` (con ${item.additions.join(", ")})`}
                                 {item.removals && item.removals.length > 0 && ` (sin ${item.removals.join(", ")})`}
+                                {item.observations && ` 📝 ${item.observations}`}
                               </div>
                             ))}
                           </div>
