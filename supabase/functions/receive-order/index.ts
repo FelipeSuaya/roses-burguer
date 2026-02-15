@@ -209,9 +209,6 @@ serve(async (req) => {
         // Print all items
         data.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-          if (item.combo) {
-            itemDesc += ' (combo)';
-          }
           newLine();
           addText(itemDesc);
           newLine();
@@ -222,6 +219,10 @@ serve(async (req) => {
           }
           if (item.removals && item.removals.length > 0) {
             addText(`- ${item.removals.join(', ')}`);
+            newLine();
+          }
+          if (item.observations) {
+            addText(`OBS: ${item.observations}`);
             newLine();
           }
         });
@@ -266,9 +267,6 @@ serve(async (req) => {
         // Print all items with prices
         data.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-          if (item.combo) {
-            itemDesc += ' (combo)';
-          }
           if (item.price) {
             itemDesc += ` $${parseFloat(item.price).toLocaleString('es-AR')}`;
           }
@@ -282,6 +280,10 @@ serve(async (req) => {
           }
           if (item.removals && item.removals.length > 0) {
             addText(`- ${item.removals.join(', ')}`);
+            newLine();
+          }
+          if (item.observations) {
+            addText(`OBS: ${item.observations}`);
             newLine();
           }
         });

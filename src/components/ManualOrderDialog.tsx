@@ -284,9 +284,6 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
         order.items.forEach((item) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-            if (item.combo) {
-                itemDesc += " (combo)";
-            }
             newLine(kitchenBytes);
             addText(kitchenBytes, itemDesc);
             newLine(kitchenBytes);
@@ -335,9 +332,6 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
         order.items.forEach((item) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-            if (item.combo) {
-                itemDesc += " (combo)";
-            }
             newLine(cashierBytes);
             addText(cashierBytes, itemDesc);
             newLine(cashierBytes);
