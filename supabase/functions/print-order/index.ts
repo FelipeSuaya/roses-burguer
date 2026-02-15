@@ -95,6 +95,9 @@ serve(async (req) => {
         
         orderData.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.combo) {
+            itemDesc += ' (combo)';
+          }
           newLine();
           addText(itemDesc);
           newLine();
@@ -151,6 +154,9 @@ serve(async (req) => {
         
         orderData.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.combo) {
+            itemDesc += ' (combo)';
+          }
           if (item.price) {
             itemDesc += ` $${parseFloat(item.price).toLocaleString('es-AR')}`;
           }
