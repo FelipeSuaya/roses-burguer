@@ -187,7 +187,13 @@ Deno.serve(async (req) => {
         });
 
         const hasItemChanges = added.length > 0 || removed.length > 0;
-        const hasChanges = hasItemChanges || nonItemFieldsChanged;
+        
+        // Detect extras changes
+        const oldExtras = Array.isArray(existingOrder.extras) ? existingOrder.extras as any[] : [];
+        const newExtras = extras !== undefined ? (Array.isArray(extras) ? extras as any[] : []) : oldExtras;
+        const extrasChanged = extras !== undefined && JSON.stringify(oldExtras) !== JSON.stringify(newExtras);
+        
+        const hasChanges = hasItemChanges || nonItemFieldsChanged || extrasChanged;
 
         // Detect simple swap (one removed and one added with same qty)
         const isSwap =
@@ -248,7 +254,7 @@ Deno.serve(async (req) => {
       addBytes(...CENTER);
       
       if (type === 'kitchen') {
-              if (hasItemChanges) {
+              if (hasItemChanges || extrasChanged) {
                 addBytes(...DOUBLE_SIZE, ...BOLD_ON);
                 addText('COCINA');
                 addBytes(...BOLD_OFF, LF);
@@ -507,7 +513,7 @@ Deno.serve(async (req) => {
                 webhookErrors.push({ type: 'kitchen', error: msg });
               }
             } else {
-              console.log('edit-order skipping kitchen webhook (no item changes)', { order_number: existingOrder.order_number });
+              console.log('edit-order skipping kitchen webhook (no item/extras changes)', { order_number: existingOrder.order_number });
             }
 
             // Always send cashier webhook
