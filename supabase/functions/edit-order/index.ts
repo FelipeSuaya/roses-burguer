@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { order_number, nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
+    const { order_number, nombre, items, extras, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
 
     if (!order_number) {
       return new Response(
@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
     if (telefono !== undefined) updateData.telefono = telefono;
     if (direccion_envio !== undefined) updateData.direccion_envio = direccion_envio;
     if (hora_programada !== undefined) updateData.hora_programada = hora_programada;
+    if (extras !== undefined) updateData.extras = extras;
     
     // Handle metodo_pago - can be string or array for mixed payments
     if (metodo_pago !== undefined) {
@@ -318,6 +319,23 @@ Deno.serve(async (req) => {
                     }
                   });
                 }
+                
+                // Print extras on kitchen ticket
+                const finalExtras = updatedOrder?.extras || existingOrder.extras || [];
+                if (Array.isArray(finalExtras) && finalExtras.length > 0) {
+                  newLine();
+                  addLine();
+                  newLine();
+                  addBytes(...BOLD_ON);
+                  addText('EXTRAS:');
+                  addBytes(...BOLD_OFF, LF);
+                  newLine();
+                  finalExtras.forEach((extra: any) => {
+                    addText(`${extra.quantity || 1}x ${extra.name}`);
+                    newLine();
+                  });
+                }
+                
                 addBytes(LF, LF, LF, LF, LF);
                 addBytes(...CUT);
               } else {
@@ -417,6 +435,24 @@ Deno.serve(async (req) => {
                 }
               });
               
+              // Print extras on cashier ticket
+              const finalExtras = updatedOrder?.extras || existingOrder.extras || [];
+              if (Array.isArray(finalExtras) && finalExtras.length > 0) {
+                newLine();
+                addBytes(...BOLD_ON);
+                addText('EXTRAS:');
+                addBytes(...BOLD_OFF, LF);
+                newLine();
+                finalExtras.forEach((extra: any) => {
+                  let extraDesc = `${extra.quantity || 1}x ${extra.name}`;
+                  if (extra.price) {
+                    extraDesc += ` $${parseFloat(extra.price).toLocaleString('es-AR')}`;
+                  }
+                  addText(extraDesc);
+                  newLine();
+                });
+              }
+              
               addLine();
               newLine();
               addBytes(...BOLD_ON);
@@ -455,6 +491,7 @@ Deno.serve(async (req) => {
                   direccion_envio: updatedOrder?.direccion_envio || existingOrder.direccion_envio || null,
                   monto: (updatedOrder?.monto ?? existingOrder.monto),
                   metodo_pago: updatedOrder?.metodo_pago || existingOrder.metodo_pago || null,
+                  extras: updatedOrder?.extras || existingOrder.extras || [],
                 };
                 console.log('edit-order sending kitchen webhook', { order_number: existingOrder.order_number, added_count: added.length, removed_count: removed.length, isSwap });
                 const rk = await fetch(kitchenWebhookUrl, {
@@ -490,6 +527,7 @@ Deno.serve(async (req) => {
                 direccion_envio: updatedOrder?.direccion_envio || existingOrder.direccion_envio || null,
                 monto: (updatedOrder?.monto ?? existingOrder.monto),
                 metodo_pago: updatedOrder?.metodo_pago || existingOrder.metodo_pago || null,
+                extras: updatedOrder?.extras || existingOrder.extras || [],
                 address_changed: addressChanged,
                 phone_changed: phoneChanged,
                 payment_changed: paymentChanged,
