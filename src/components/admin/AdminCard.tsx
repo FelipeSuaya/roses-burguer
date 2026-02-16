@@ -42,7 +42,11 @@ function formatMetadata(item: StoreDataItem): string | null {
 
 function formatValidPayments(item: StoreDataItem): string | null {
   const meta = item.metadata as Record<string, unknown> | null;
-  if (!meta?.valid_payments) return null;
+  if (!meta) return null;
+  
+  if (meta.condicion) return meta.condicion as string;
+  
+  if (!meta.valid_payments) return null;
   const payments = meta.valid_payments as string[];
   if (payments.length === 0) return null;
   const labels: Record<string, string> = { efectivo: 'Efectivo', transferencia: 'Transferencia', link: 'Link de pago' };
