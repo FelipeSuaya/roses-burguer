@@ -216,10 +216,11 @@ serve(async (req) => {
         addText(`Pago: ${orderData.metodo_pago}`);
         newLine();
         
-        // Cash management info - skip for digital-only payments
+        // Cash management info - skip for digital-only payments and pickup orders
         const mpLower = (orderData.metodo_pago || '').toLowerCase();
         const isOnlyDigital = mpLower === 'transferencia' || mpLower === 'link de pago' || mpLower === 'link';
-        if (orderData.paga_con != null && !isOnlyDigital) {
+        const isPickupOrder2 = isPickupOrder(orderData.direccion_envio);
+        if (orderData.paga_con != null && !isOnlyDigital && !isPickupOrder2) {
           newLine();
           addLine();
           addBytes(...BOLD_ON);
