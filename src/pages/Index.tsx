@@ -43,6 +43,8 @@ interface Order {
   metodo_pago?: string;
   cadete_salio?: boolean;
   hora_programada?: string;
+  paga_con?: number | null;
+  vuelto?: number | null;
 }
 
 const Index = () => {
@@ -745,6 +747,25 @@ const Index = () => {
               {order.direccion_envio || "Sin dirección de envío especificada"}
             </p>
           </div>
+
+          {/* Cash management section */}
+          {(order.paga_con != null || (order.metodo_pago?.toLowerCase().includes('efectivo') && order.paga_con != null)) && (
+            <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
+              <p className="font-bold text-sm text-emerald-800 mb-2">
+                💵 COBRO
+              </p>
+              <div className="space-y-1">
+                <p className="text-emerald-900 text-sm font-semibold">
+                  Paga con: <span className="text-lg">${order.paga_con?.toLocaleString('es-AR')}</span>
+                </p>
+                {order.vuelto != null && order.vuelto > 0 && (
+                  <p className="text-emerald-900 text-sm font-semibold">
+                    Vuelto: <span className="text-lg text-emerald-700">${order.vuelto.toLocaleString('es-AR')}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="text-xs text-muted-foreground">
             {showCompleteButton ? 'Recibido' : 'Completado'}: {formatDistance(new Date(order.created_at), new Date(), {

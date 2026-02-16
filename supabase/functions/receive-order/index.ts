@@ -46,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    const { nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
+    const { nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada, paga_con, vuelto } = raw;
 
     if (!nombre || !items || !monto) {
       return new Response(JSON.stringify({ 
@@ -113,7 +113,9 @@ serve(async (req) => {
       status: 'pending',
       order_number: orderNumber,
       metodo_pago: metodoPagoDisplay,
-      hora_programada: hora_programada || null
+      hora_programada: hora_programada || null,
+      paga_con: paga_con != null ? parseFloat(paga_con) : null,
+      vuelto: vuelto != null ? parseFloat(vuelto) : null
     };
     
     const { data, error } = await supabase
@@ -302,6 +304,20 @@ serve(async (req) => {
         newLine();
         addText(`Pago: ${data.metodo_pago}`);
         newLine();
+        
+        // Cash management info
+        if (data.paga_con != null) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText(`PAGA CON: $${parseFloat(data.paga_con).toLocaleString('es-AR')}`);
+          addBytes(...BOLD_OFF, LF);
+          if (data.vuelto != null && data.vuelto > 0) {
+            addBytes(...BOLD_ON);
+            addText(`VUELTO: $${parseFloat(data.vuelto).toLocaleString('es-AR')}`);
+            addBytes(...BOLD_OFF, LF);
+          }
+        }
       }
       
       addBytes(LF, LF, LF, LF, LF);

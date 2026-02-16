@@ -186,6 +186,20 @@ serve(async (req) => {
         newLine();
         addText(`Pago: ${orderData.metodo_pago}`);
         newLine();
+        
+        // Cash management info
+        if (orderData.paga_con != null) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText(`PAGA CON: $${parseFloat(orderData.paga_con).toLocaleString('es-AR')}`);
+          addBytes(...BOLD_OFF, LF);
+          if (orderData.vuelto != null && orderData.vuelto > 0) {
+            addBytes(...BOLD_ON);
+            addText(`VUELTO: $${parseFloat(orderData.vuelto).toLocaleString('es-AR')}`);
+            addBytes(...BOLD_OFF, LF);
+          }
+        }
       }
       
       addBytes(LF, LF, LF, LF, LF);

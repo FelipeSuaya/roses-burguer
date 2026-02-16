@@ -85,8 +85,10 @@ export type Database = {
           monto: number
           nombre: string
           order_number: number
+          paga_con: number | null
           status: string
           telefono: string | null
+          vuelto: number | null
         }
         Insert: {
           cadete_salio?: boolean | null
@@ -101,8 +103,10 @@ export type Database = {
           monto: number
           nombre: string
           order_number?: number
+          paga_con?: number | null
           status?: string
           telefono?: string | null
+          vuelto?: number | null
         }
         Update: {
           cadete_salio?: boolean | null
@@ -117,8 +121,10 @@ export type Database = {
           monto?: number
           nombre?: string
           order_number?: number
+          paga_con?: number | null
           status?: string
           telefono?: string | null
+          vuelto?: number | null
         }
         Relationships: []
       }

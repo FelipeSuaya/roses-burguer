@@ -42,6 +42,8 @@ interface Order {
   cadete_salio?: boolean;
   hora_programada?: string;
   telefono?: string;
+  paga_con?: number | null;
+  vuelto?: number | null;
 }
 
 const Kitchen = () => {
@@ -547,6 +549,25 @@ const Kitchen = () => {
                        </div>
                      )}
                      
+                     {/* Cash management section */}
+                     {order.paga_con != null && (
+                       <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
+                         <p className="font-bold text-sm text-emerald-800 mb-2">
+                           💵 COBRO
+                         </p>
+                         <div className="space-y-1">
+                           <p className="text-emerald-900 text-sm font-semibold">
+                             Paga con: <span className="text-lg">${order.paga_con?.toLocaleString('es-AR')}</span>
+                           </p>
+                           {order.vuelto != null && order.vuelto > 0 && (
+                             <p className="text-emerald-900 text-sm font-semibold">
+                               Vuelto: <span className="text-lg text-emerald-700">${order.vuelto.toLocaleString('es-AR')}</span>
+                             </p>
+                           )}
+                         </div>
+                       </div>
+                     )}
+
                      <div className="text-xs text-muted-foreground">
                        Recibido: {formatDistance(new Date(order.created_at), new Date(), { 
                          addSuffix: true, 
