@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus } from 'lucide-react';
 import {
   Dialog,
@@ -28,6 +29,14 @@ export function AddItemDialog({ category, categoryLabel, onItemAdded }: AddItemD
   const [value, setValue] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [validPayments, setValidPayments] = useState<string[]>([]);
+
+  const isPromo = category === 'promo';
+  const paymentOptions = [
+    { value: 'efectivo', label: 'Efectivo' },
+    { value: 'transferencia', label: 'Transferencia' },
+    { value: 'link', label: 'Link de pago' },
+  ];
 
   const handleSubmit = async () => {
     if (!displayName.trim()) {
@@ -41,12 +50,17 @@ export function AddItemDialog({ category, categoryLabel, onItemAdded }: AddItemD
 
     setIsSaving(true);
 
+    const metadata = isPromo && validPayments.length > 0
+      ? { valid_payments: validPayments }
+      : {};
+
     const { error } = await supabase.from('store_data').insert({
       category,
       key: displayName.trim().toLowerCase().replace(/\s+/g, '_'),
       display_name: displayName.trim(),
       value: value.trim() || null,
       is_active: isActive,
+      metadata,
     });
 
     if (error) {
@@ -65,6 +79,7 @@ export function AddItemDialog({ category, categoryLabel, onItemAdded }: AddItemD
       setDisplayName('');
       setValue('');
       setIsActive(true);
+      setValidPayments([]);
       onItemAdded();
     }
 
@@ -107,6 +122,29 @@ export function AddItemDialog({ category, categoryLabel, onItemAdded }: AddItemD
               className="h-12 text-base"
             />
           </div>
+          {isPromo && (
+            <div className="grid gap-2">
+              <Label>Válido únicamente en</Label>
+              <p className="text-xs text-muted-foreground">Si no seleccionás ninguno, será válido en todos los métodos de pago.</p>
+              <div className="flex flex-col gap-2">
+                {paymentOptions.map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={validPayments.includes(opt.value)}
+                      onCheckedChange={(checked) => {
+                        setValidPayments(prev =>
+                          checked
+                            ? [...prev, opt.value]
+                            : prev.filter(v => v !== opt.value)
+                        );
+                      }}
+                    />
+                    <span className="text-sm">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Label htmlFor="isActive">Activo / Con stock</Label>
             <Switch
