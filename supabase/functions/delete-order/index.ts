@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
 
     // Check if order was created within last 15 minutes
     const orderCreatedAt = new Date(existingOrder.created_at);
-    const now = new Date();
-    const timeDiffMinutes = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60);
+    const nowCheck = new Date();
+    const timeDiffMinutes = (nowCheck.getTime() - orderCreatedAt.getTime()) / (1000 * 60);
 
     if (timeDiffMinutes > 15) {
       return new Response(
