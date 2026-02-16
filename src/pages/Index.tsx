@@ -774,8 +774,12 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Cash management section */}
-          {(order.paga_con != null || (order.metodo_pago?.toLowerCase().includes('efectivo') && order.paga_con != null)) && (
+          {/* Cash management section - only show for cash payments */}
+          {order.paga_con != null && (() => {
+            const mp = (order.metodo_pago || '').toLowerCase();
+            const isOnlyDigital = mp === 'transferencia' || mp === 'link de pago' || mp === 'link';
+            return !isOnlyDigital;
+          })() && (
             <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
               <p className="font-bold text-sm text-emerald-800 mb-2">
                 💵 COBRO

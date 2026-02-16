@@ -336,8 +336,10 @@ serve(async (req) => {
         addText(`Pago: ${data.metodo_pago}`);
         newLine();
         
-        // Cash management info
-        if (data.paga_con != null) {
+        // Cash management info - skip for digital-only payments
+        const mpLower = (data.metodo_pago || '').toLowerCase();
+        const isOnlyDigital = mpLower === 'transferencia' || mpLower === 'link de pago' || mpLower === 'link';
+        if (data.paga_con != null && !isOnlyDigital) {
           newLine();
           addLine();
           addBytes(...BOLD_ON);
