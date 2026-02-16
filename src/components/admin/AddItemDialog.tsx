@@ -50,9 +50,17 @@ export function AddItemDialog({ category, categoryLabel, onItemAdded }: AddItemD
 
     setIsSaving(true);
 
-    const metadata = isPromo && validPayments.length > 0
-      ? { valid_payments: validPayments }
-      : {};
+    const paymentLabels: Record<string, string> = {
+      efectivo: 'Pago en Efectivo',
+      transferencia: 'Pago por Transferencia',
+      link: 'Pago por Link',
+    };
+
+    const metadata = isPromo && validPayments.length === 1
+      ? { condicion: paymentLabels[validPayments[0]] }
+      : isPromo && validPayments.length > 1
+        ? { condicion: validPayments.map(p => paymentLabels[p]).join(' o ') }
+        : {};
 
     const { error } = await supabase.from('store_data').insert({
       category,
