@@ -105,10 +105,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Find today's latest order by order_number
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
+    // Find today's latest order by order_number (Argentina timezone UTC-3)
+    const now = new Date();
+    const argentinaOffset = -3 * 60; // UTC-3 in minutes
+    const argentinaTime = new Date(now.getTime() + (argentinaOffset + now.getTimezoneOffset()) * 60000);
+    argentinaTime.setHours(0, 0, 0, 0);
+    // Convert back to UTC for the query
+    const todayStartUTC = new Date(argentinaTime.getTime() - (argentinaOffset + now.getTimezoneOffset()) * 60000);
+    const todayISO = todayStartUTC.toISOString();
 
     const { data: orders, error: findError } = await supabase
       .from('orders')
