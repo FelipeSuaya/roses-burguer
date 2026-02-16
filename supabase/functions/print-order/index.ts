@@ -116,7 +116,20 @@ serve(async (req) => {
           }
         });
         
-      } else {
+        // Print extras section for kitchen
+        if (orderData.extras && Array.isArray(orderData.extras) && orderData.extras.length > 0) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText('EXTRAS:');
+          addBytes(...BOLD_OFF, LF);
+          orderData.extras.forEach((extra: any) => {
+            newLine();
+            addText(`${extra.quantity || 1}x ${extra.name}`);
+            newLine();
+          });
+        }
+        
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
         addBytes(...BOLD_OFF, LF);
@@ -178,9 +191,25 @@ serve(async (req) => {
           }
         });
         
+        // Print extras section for cashier
+        if (orderData.extras && Array.isArray(orderData.extras) && orderData.extras.length > 0) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText('EXTRAS:');
+          addBytes(...BOLD_OFF, LF);
+          orderData.extras.forEach((extra: any) => {
+            let extraDesc = `${extra.quantity || 1}x ${extra.name}`;
+            if (extra.price) {
+              extraDesc += ` $${parseFloat(extra.price).toLocaleString('es-AR')}`;
+            }
+            newLine();
+            addText(extraDesc);
+            newLine();
+          });
+        }
+        
         addLine();
-        newLine();
-        addBytes(...BOLD_ON);
         addText(`TOTAL: $${parseFloat(orderData.monto).toLocaleString('es-AR')}`);
         addBytes(...BOLD_OFF, LF);
         newLine();

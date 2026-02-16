@@ -46,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    const { nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada, paga_con, vuelto } = raw;
+    const { nombre, items, monto, telefono, direccion_envio, metodo_pago, hora_programada, paga_con, vuelto, extras } = raw;
 
     if (!nombre || !items || !monto) {
       return new Response(JSON.stringify({ 
@@ -115,7 +115,8 @@ serve(async (req) => {
       metodo_pago: metodoPagoDisplay,
       hora_programada: hora_programada || null,
       paga_con: paga_con != null ? parseFloat(paga_con) : null,
-      vuelto: vuelto != null ? parseFloat(vuelto) : null
+      vuelto: vuelto != null ? parseFloat(vuelto) : null,
+      extras: Array.isArray(extras) && extras.length > 0 ? extras : null
     };
     
     const { data, error } = await supabase
@@ -232,7 +233,20 @@ serve(async (req) => {
           }
         });
         
-      } else {
+        // Print extras section for kitchen
+        if (data.extras && Array.isArray(data.extras) && data.extras.length > 0) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText('EXTRAS:');
+          addBytes(...BOLD_OFF, LF);
+          data.extras.forEach((extra: any) => {
+            newLine();
+            addText(`${extra.quantity || 1}x ${extra.name}`);
+            newLine();
+          });
+        }
+        
         // Cashier ticket - Complete order details
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
@@ -296,7 +310,24 @@ serve(async (req) => {
           }
         });
         
-        addLine();
+        // Print extras section for cashier
+        if (data.extras && Array.isArray(data.extras) && data.extras.length > 0) {
+          newLine();
+          addLine();
+          addBytes(...BOLD_ON);
+          addText('EXTRAS:');
+          addBytes(...BOLD_OFF, LF);
+          data.extras.forEach((extra: any) => {
+            let extraDesc = `${extra.quantity || 1}x ${extra.name}`;
+            if (extra.price) {
+              extraDesc += ` $${parseFloat(extra.price).toLocaleString('es-AR')}`;
+            }
+            newLine();
+            addText(extraDesc);
+            newLine();
+          });
+        }
+        
         newLine();
         addBytes(...BOLD_ON);
         addText(`TOTAL: $${parseFloat(data.monto).toLocaleString('es-AR')}`);

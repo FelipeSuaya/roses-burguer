@@ -19,6 +19,12 @@ interface OrderItem {
   observations?: string | null;
 }
 
+interface ExtraItem {
+  name: string;
+  quantity: number;
+  price?: number;
+}
+
 interface ItemStatus {
   burger_type: string;
   quantity: number;
@@ -44,6 +50,7 @@ interface Order {
   telefono?: string;
   paga_con?: number | null;
   vuelto?: number | null;
+  extras?: ExtraItem[] | null;
 }
 
 const Kitchen = () => {
@@ -65,7 +72,8 @@ const Kitchen = () => {
         const typedOrders = (data || []).map(order => ({
           ...order,
           items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined,
-          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined
+          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined,
+          extras: Array.isArray(order.extras) ? order.extras as unknown as ExtraItem[] : null
         }));
         setOrders(typedOrders);
       }
@@ -549,6 +557,22 @@ const Kitchen = () => {
                        </div>
                      )}
                      
+                     {/* Extras section */}
+                     {order.extras && order.extras.length > 0 && (
+                       <div className="bg-orange-50 border border-orange-300 p-3 rounded-md">
+                         <p className="font-bold text-sm text-orange-800 mb-2">
+                           🍟 EXTRAS
+                         </p>
+                         <div className="space-y-1">
+                           {order.extras.map((extra, index) => (
+                             <div key={index} className="text-sm font-medium text-orange-900">
+                               {extra.quantity || 1}x {extra.name}
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+
                      {/* Cash management section */}
                      {order.paga_con != null && (
                        <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
