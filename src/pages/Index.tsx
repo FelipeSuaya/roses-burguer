@@ -778,7 +778,9 @@ const Index = () => {
           {order.paga_con != null && (() => {
             const mp = (order.metodo_pago || '').toLowerCase();
             const isOnlyDigital = mp === 'transferencia' || mp === 'link de pago' || mp === 'link';
-            return !isOnlyDigital;
+            const dir = (order.direccion_envio || '').toLowerCase();
+            const isPickup = dir.includes('retira') || dir.includes('retiro') || dir === 'local';
+            return !isOnlyDigital && !isPickup;
           })() && (
             <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
               <p className="font-bold text-sm text-emerald-800 mb-2">
