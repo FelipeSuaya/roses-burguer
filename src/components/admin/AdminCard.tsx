@@ -25,23 +25,33 @@ interface AdminCardProps {
 }
 
 function formatMetadata(item: StoreDataItem): string | null {
-  const meta = item.metadata as Record<string, string> | null;
+  const meta = item.metadata as Record<string, unknown> | null;
   if (!meta) return null;
   
   // Para reglas de demora, mostrar día y horario
   if (meta.dia) {
-    const dia = meta.dia.charAt(0).toUpperCase() + meta.dia.slice(1);
-    const horaInicio = meta.hora_inicio?.slice(0, 5) || '';
-    const horaFin = meta.hora_fin?.slice(0, 5) || '';
-    const zona = meta.zona || '';
+    const dia = (meta.dia as string).charAt(0).toUpperCase() + (meta.dia as string).slice(1);
+    const horaInicio = (meta.hora_inicio as string)?.slice(0, 5) || '';
+    const horaFin = (meta.hora_fin as string)?.slice(0, 5) || '';
+    const zona = (meta.zona as string) || '';
     return `${zona} - ${dia} ${horaInicio}-${horaFin}`;
   }
   
   return null;
 }
 
+function formatValidPayments(item: StoreDataItem): string | null {
+  const meta = item.metadata as Record<string, unknown> | null;
+  if (!meta?.valid_payments) return null;
+  const payments = meta.valid_payments as string[];
+  if (payments.length === 0) return null;
+  const labels: Record<string, string> = { efectivo: 'Efectivo', transferencia: 'Transferencia', link: 'Link de pago' };
+  return payments.map(p => labels[p] || p).join(', ');
+}
+
 export function AdminCard({ item, onToggleActive, onUpdateValue, onDelete }: AdminCardProps) {
   const metadataInfo = formatMetadata(item);
+  const validPaymentsInfo = formatValidPayments(item);
   const [localValue, setLocalValue] = useState(item.value || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
@@ -81,6 +91,11 @@ export function AdminCard({ item, onToggleActive, onUpdateValue, onDelete }: Adm
           {metadataInfo && (
             <p className="text-sm text-muted-foreground">
               Demora: {item.value}
+            </p>
+          )}
+          {validPaymentsInfo && (
+            <p className="text-xs text-muted-foreground">
+              💳 Válido en: {validPaymentsInfo}
             </p>
           )}
           <div className="flex items-center justify-end gap-2">
