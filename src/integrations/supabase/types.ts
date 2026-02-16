@@ -76,6 +76,7 @@ export type Database = {
           cadete_salio: boolean | null
           created_at: string
           direccion_envio: string | null
+          extras: Json | null
           fecha: string
           hora_programada: string | null
           id: string
@@ -94,6 +95,7 @@ export type Database = {
           cadete_salio?: boolean | null
           created_at?: string
           direccion_envio?: string | null
+          extras?: Json | null
           fecha?: string
           hora_programada?: string | null
           id?: string
@@ -112,6 +114,7 @@ export type Database = {
           cadete_salio?: boolean | null
           created_at?: string
           direccion_envio?: string | null
+          extras?: Json | null
           fecha?: string
           hora_programada?: string | null
           id?: string

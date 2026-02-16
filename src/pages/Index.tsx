@@ -21,6 +21,12 @@ interface OrderItem {
   observations?: string | null;
 }
 
+interface ExtraItem {
+  name: string;
+  quantity: number;
+  price?: number;
+}
+
 interface ItemStatus {
   burger_type: string;
   quantity: number;
@@ -45,6 +51,7 @@ interface Order {
   hora_programada?: string;
   paga_con?: number | null;
   vuelto?: number | null;
+  extras?: ExtraItem[] | null;
 }
 
 const Index = () => {
@@ -73,7 +80,8 @@ const Index = () => {
         const typedPending = (pending || []).map(order => ({
           ...order,
           items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined,
-          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined
+          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined,
+          extras: Array.isArray(order.extras) ? order.extras as unknown as ExtraItem[] : null
         }));
         setPendingOrders(typedPending);
       }
@@ -83,7 +91,8 @@ const Index = () => {
         const typedCompleted = (completed || []).map(order => ({
           ...order,
           items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined,
-          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined
+          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined,
+          extras: Array.isArray(order.extras) ? order.extras as unknown as ExtraItem[] : null
         }));
         setCompletedOrders(typedCompleted);
       }
@@ -735,6 +744,23 @@ const Index = () => {
               <p className="font-medium text-sm text-muted-foreground mb-1">
                 Sin detalles
               </p>
+            </div>
+          )}
+
+          {/* Extras section */}
+          {order.extras && order.extras.length > 0 && (
+            <div className="bg-orange-50 border border-orange-300 p-3 rounded-md">
+              <p className="font-bold text-sm text-orange-800 mb-2">
+                🍟 EXTRAS
+              </p>
+              <div className="space-y-1">
+                {order.extras.map((extra, index) => (
+                  <div key={index} className="text-sm font-medium text-orange-900">
+                    {extra.quantity || 1}x {extra.name}
+                    {extra.price && ` - $${extra.price.toLocaleString('es-AR')}`}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
