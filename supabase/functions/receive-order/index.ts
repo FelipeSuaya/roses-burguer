@@ -246,7 +246,7 @@ serve(async (req) => {
             newLine();
           });
         }
-        
+      } else if (type === 'cashier') {
         // Cashier ticket - Complete order details
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');

@@ -129,7 +129,8 @@ serve(async (req) => {
             newLine();
           });
         }
-        
+      
+      } else if (type === 'cashier') {
         addBytes(...DOUBLE_SIZE, ...BOLD_ON);
         addText('CAJA');
         addBytes(...BOLD_OFF, LF);
