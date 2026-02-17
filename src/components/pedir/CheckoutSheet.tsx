@@ -8,23 +8,37 @@ import { Trash2, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { CartItem } from "@/pages/Pedir";
 
+interface DeliveryZone {
+  id: number;
+  key: string;
+  display_name: string;
+  value: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cart: CartItem[];
   cartTotal: number;
+  deliveryZones: DeliveryZone[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
   onSuccess: () => void;
 }
 
-export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQuantity, onRemove, onSuccess }: Props) {
+export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, deliveryZones, onUpdateQuantity, onRemove, onSuccess }: Props) {
   const { toast } = useToast();
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [isPickup, setIsPickup] = useState(false);
+  const [selectedZone, setSelectedZone] = useState<string>("");
   const [direccion, setDireccion] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const shippingCost = !isPickup && selectedZone
+    ? parseInt(deliveryZones.find(z => z.key === selectedZone)?.value || "0") || 0
+    : 0;
+  const grandTotal = cartTotal + shippingCost;
 
   const handleSubmit = async () => {
     if (!nombre.trim()) {
@@ -33,6 +47,10 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
     }
     if (!telefono.trim()) {
       toast({ title: "Falta tu teléfono", variant: "destructive" });
+      return;
+    }
+    if (!isPickup && !selectedZone) {
+      toast({ title: "Seleccioná la zona de envío", variant: "destructive" });
       return;
     }
     if (!isPickup && !direccion.trim()) {
@@ -65,13 +83,14 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
         price: c.unitPrice * c.quantity,
       }));
 
+    const zoneName = deliveryZones.find(z => z.key === selectedZone)?.display_name || "";
     const payload = {
       nombre: nombre.trim(),
       telefono: telefono.trim(),
       items: burgerItems,
       extras: extraItems.length > 0 ? extraItems : undefined,
-      monto: cartTotal,
-      direccion_envio: isPickup ? "Retira en local" : direccion.trim(),
+      monto: grandTotal,
+      direccion_envio: isPickup ? "Retira en local" : `${direccion.trim()} (${zoneName})`,
       metodo_pago: "pendiente",
     };
 
@@ -98,6 +117,7 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
       setNombre("");
       setTelefono("");
       setDireccion("");
+      setSelectedZone("");
       setIsPickup(false);
       onSuccess();
     } catch (error) {
@@ -166,9 +186,23 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
               ))}
 
               <div className="flex justify-between items-center pt-3 border-t border-border">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-sm font-semibold">
+                  ${cartTotal.toLocaleString("es-AR")}
+                </span>
+              </div>
+              {shippingCost > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Envío ({deliveryZones.find(z => z.key === selectedZone)?.display_name})</span>
+                  <span className="text-sm font-semibold">
+                    ${shippingCost.toLocaleString("es-AR")}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
                 <span className="text-lg font-bold">Total</span>
                 <span className="text-lg font-bold text-primary">
-                  ${cartTotal.toLocaleString("es-AR")}
+                  ${grandTotal.toLocaleString("es-AR")}
                 </span>
               </div>
             </div>
@@ -209,7 +243,10 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
                     checked={isPickup}
                     onCheckedChange={(checked) => {
                       setIsPickup(checked);
-                      if (checked) setDireccion("");
+                      if (checked) {
+                        setDireccion("");
+                        setSelectedZone("");
+                      }
                     }}
                   />
                   <span className="text-sm flex items-center gap-1.5">
@@ -220,8 +257,29 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
               </div>
 
               {!isPickup && (
-                <div className="space-y-2">
-                  <Label htmlFor="checkout-direccion">Dirección de envío *</Label>
+                <div className="space-y-3">
+                  <Label>Zona de envío *</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {deliveryZones.map((zone) => {
+                      const cost = parseInt(zone.value) || 0;
+                      return (
+                        <button
+                          key={zone.key}
+                          onClick={() => setSelectedZone(zone.key)}
+                          className={`p-3 rounded-xl border-2 text-center transition-all text-foreground ${
+                            selectedZone === zone.key
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/30"
+                          }`}
+                        >
+                          <span className="font-bold text-sm block">{zone.display_name}</span>
+                          <span className="text-xs text-primary font-semibold">+${cost.toLocaleString("es-AR")}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <Label htmlFor="checkout-direccion">Dirección *</Label>
                   <Input
                     id="checkout-direccion"
                     placeholder="Calle, número, barrio"
@@ -243,7 +301,7 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
                     Enviando...
                   </>
                 ) : (
-                  `Confirmar pedido · $${cartTotal.toLocaleString("es-AR")}`
+                  `Confirmar pedido · $${grandTotal.toLocaleString("es-AR")}`
                 )}
               </Button>
 
