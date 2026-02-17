@@ -114,9 +114,9 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="roses-theme h-[90vh] rounded-t-2xl overflow-y-auto px-4 pb-6">
+      <SheetContent side="bottom" className="roses-theme h-[90vh] rounded-t-2xl overflow-y-auto px-4 pb-6 text-foreground">
         <SheetHeader className="pb-4">
-          <SheetTitle className="text-2xl font-bold text-left">Tu pedido</SheetTitle>
+          <SheetTitle className="text-2xl font-bold text-left text-foreground">Tu pedido</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6">
@@ -177,7 +177,7 @@ export function CheckoutSheet({ open, onOpenChange, cart, cartTotal, onUpdateQua
           {/* Customer Info */}
           {cart.length > 0 && (
             <div className="space-y-4 pt-4 border-t border-border">
-              <h3 className="font-bold text-lg">Tus datos</h3>
+              <h3 className="font-bold text-lg text-foreground">Tus datos</h3>
 
               <div className="space-y-2">
                 <Label htmlFor="checkout-nombre">Nombre *</Label>
