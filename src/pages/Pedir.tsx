@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Plus, Minus, Flame } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Flame, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BurgerCustomizeSheet } from "@/components/pedir/BurgerCustomizeSheet";
@@ -37,6 +37,8 @@ export default function Pedir() {
   const [burgerFlavors, setBurgerFlavors] = useState<StoreItem[]>([]);
   const [pricingRules, setPricingRules] = useState<StoreItem[]>([]);
   const [extras, setExtras] = useState<StoreItem[]>([]);
+  const [deliveryZones, setDeliveryZones] = useState<StoreItem[]>([]);
+  const [promos, setPromos] = useState<StoreItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedBurger, setSelectedBurger] = useState<StoreItem | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function Pedir() {
     const { data, error } = await supabase
       .from("store_data")
       .select("*")
-      .in("category", ["sabor_hamburguesa", "regla_precio", "extra"])
+      .in("category", ["sabor_hamburguesa", "regla_precio", "extra", "envio", "promo"])
       .eq("is_active", true);
 
     if (error) {
@@ -64,6 +66,8 @@ export default function Pedir() {
     setBurgerFlavors(items.filter((i) => i.category === "sabor_hamburguesa"));
     setPricingRules(items.filter((i) => i.category === "regla_precio"));
     setExtras(items.filter((i) => i.category === "extra"));
+    setDeliveryZones(items.filter((i) => i.category === "envio"));
+    setPromos(items.filter((i) => i.category === "promo"));
     setLoading(false);
   };
 
@@ -176,6 +180,40 @@ export default function Pedir() {
           </div>
         ) : (
           <>
+            {/* Promos Section */}
+            {promos.length > 0 && (
+              <section className="py-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-primary" />
+                  Promociones
+                </h2>
+                <div className="space-y-3">
+                  {promos.map((promo) => {
+                    const meta = promo.metadata as Record<string, string> | null;
+                    const condicion = meta?.condicion || meta?.valid_payments || "";
+                    const aplicaA = meta?.aplica_a || "";
+                    return (
+                      <div
+                        key={promo.id}
+                        className="bg-primary/10 rounded-xl p-4 border border-primary/30"
+                      >
+                        <h3 className="font-bold text-sm text-primary">{promo.display_name}</h3>
+                        <p className="text-sm text-foreground mt-1">{promo.value}</p>
+                        {aplicaA && (
+                          <p className="text-xs text-muted-foreground mt-1">Aplica a: {aplicaA}</p>
+                        )}
+                        {condicion && (
+                          <Badge variant="outline" className="mt-2 text-xs border-primary/40 text-primary">
+                            {condicion}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Burgers Section */}
             <section className="py-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -311,6 +349,7 @@ export default function Pedir() {
         onOpenChange={setCheckoutOpen}
         cart={cart}
         cartTotal={cartTotal}
+        deliveryZones={deliveryZones}
         onUpdateQuantity={updateCartItemQuantity}
         onRemove={removeFromCart}
         onSuccess={handleOrderSuccess}
