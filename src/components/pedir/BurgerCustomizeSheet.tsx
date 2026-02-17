@@ -179,7 +179,7 @@ export function BurgerCustomizeSheet({ burger, pricingRules, extras, open, onOpe
                   <button
                     key={s}
                     onClick={() => setSize(s)}
-                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                    className={`p-3 rounded-xl border-2 text-center transition-all text-foreground ${
                       size === s
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/30"
@@ -204,7 +204,7 @@ export function BurgerCustomizeSheet({ burger, pricingRules, extras, open, onOpe
                   setIsCombo(false);
                   setComboSide(null);
                 }}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                className={`p-3 rounded-xl border-2 text-center transition-all text-foreground ${
                   !isCombo ? "border-primary bg-primary/10" : "border-border"
                 }`}
               >
@@ -213,7 +213,7 @@ export function BurgerCustomizeSheet({ burger, pricingRules, extras, open, onOpe
               </button>
               <button
                 onClick={() => setIsCombo(true)}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                className={`p-3 rounded-xl border-2 text-center transition-all text-foreground ${
                   isCombo ? "border-primary bg-primary/10" : "border-border"
                 }`}
               >
@@ -239,7 +239,7 @@ export function BurgerCustomizeSheet({ burger, pricingRules, extras, open, onOpe
                     <button
                       key={opt.key}
                       onClick={() => setComboSide(opt.key)}
-                      className={`w-full p-3 rounded-xl border-2 text-left flex justify-between items-center transition-all ${
+                      className={`w-full p-3 rounded-xl border-2 text-left flex justify-between items-center transition-all text-foreground ${
                         comboSide === opt.key
                           ? "border-primary bg-primary/10"
                           : "border-border hover:border-primary/30"
