@@ -1,0 +1,205 @@
+{
+  "name": "Editar",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"order_number\": 1,\n  \"nombre\": \"Felipe Cardona\",\n  \"monto\": 25000,\n  \"hora_programada\": \"21:30\",\n  \"metodo_pago\": [\n    { \"metodo\": \"transferencia\", \"monto\": 12500 },\n    { \"metodo\": \"efectivo\", \"monto\": 12500 }\n  ],\n  \"paga_con\": 15000,\n  \"vuelto\": 2500,\n  \"direccion_envio\": \"Nueva dirección aquí (PORTON NEGRO)\",\n  \"items\": [\n    {\n      \"combo\": false,\n      \"quantity\": 2,\n      \"removals\": null,\n      \"additions\": null,\n      \"price\": 12500,\n      \"patty_size\": \"doble\",\n      \"burger_type\": \"Cowboy\",\n      \"guarnecion\": \"\",\n      \"observations\": \"SIN CEBOLLA\"\n    }\n  ],\n  \"extras\": [\n    {\n      \"name\": \"PAPAS CHEDDAR\",\n      \"quantity\": 1,\n      \"price\": 8000\n    }\n  ]\n}"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wiccnzhlzmtftgowbmkg.supabase.co/functions/v1/edit-order",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.toJsonString() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        352
+      ],
+      "id": "acc07b3d-9a49-4f82-8b05-8d7c55ee0bde",
+      "name": "Editar pedido",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse metodo_pago: si viene como string JSON, convertirlo a objeto.\ntry {\n  $json.metodo_pago = JSON.parse($json.metodo_pago);\n} catch (e) {\n  // No era JSON (era \"efectivo\" o \"transferencia\"), lo dejamos tal cual.\n}\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        352
+      ],
+      "id": "fcfb4cfd-cc0e-451a-91d3-fe2b0d805cf8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "// AUTO-CORRECION EDITAR\n// Convierte items y extras de string a array si el LLM los mando mal formateados.\n\nvar inputs = $input.all()[0].json;\n\nfunction parseArrayField(raw, fieldName) {\n  if (raw === undefined || raw === null) return raw;\n  if (Array.isArray(raw)) return raw;\n  if (typeof raw === 'string') {\n    var clean = raw\n      .replace(/```json/g, '')\n      .replace(/```/g, '')\n      .trim()\n      .replace(/'/g, '\"')\n      .replace(/True/g, 'true')\n      .replace(/False/g, 'false')\n      .replace(/None/g, 'null');\n    var parsed = JSON.parse(clean);\n    if (!Array.isArray(parsed)) throw new Error(fieldName + ' no es un array');\n    return parsed;\n  }\n  throw new Error(fieldName + ': tipo inesperado ' + typeof raw);\n}\n\ntry {\n  var result = Object.assign({}, inputs);\n  result.items = parseArrayField(inputs.items, 'items');\n  result.extras = parseArrayField(inputs.extras, 'extras');\n  return { json: result };\n} catch (error) {\n  throw new Error('ERROR AL PROCESAR CAMPOS: ' + error.message);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        352
+      ],
+      "id": "11223344-1122-3344-5566-778899aabbcc",
+      "name": "auto-correcion"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "store_data",
+        "limit": 500
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        624,
+        352
+      ],
+      "id": "aabbccdd-eeff-0011-2233-445566778899",
+      "name": "Fetch store_data",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// CALCULAR-PRECIOS EDITAR\n// Corrige los precios de items y extras usando store_data como fuente de verdad.\n// Si no hay items en el payload, pasa sin cambios.\n\nvar inputs = $('auto-correcion').first().json;\nvar storeData = $input.all().map(function(i) { return i.json; });\n\n// Si no se estan editando items, pasar sin tocar\nif (!inputs.items || !Array.isArray(inputs.items) || inputs.items.length === 0) {\n  return { json: inputs };\n}\n\nvar guarnecionToKey = {\n  '': 'con papas clasicas',\n  'clasicas': 'con papas clasicas',\n  'sazonadas': 'con papas sazonadas',\n  'papas_cheddar': 'con papas con cheddar y panceta',\n  'papas cheddar': 'con papas con cheddar y panceta',\n  'aros': 'con aros de cebolla',\n  'nuggets': 'con nuggets'\n};\n\nvar guarnecionToObs = {\n  'sazonadas': 'CAMBIO X PAPAS SAZONADAS',\n  'papas_cheddar': 'CAMBIO X PAPAS CHEDDAR',\n  'papas cheddar': 'CAMBIO X PAPAS CHEDDAR',\n  'aros': 'CAMBIO X AROS DE CEBOLLA',\n  'nuggets': 'CAMBIO X NUGGETS'\n};\n\nvar medallonCount = { 'simple': 1, 'doble': 2, 'triple': 3, 'cuadruple': 4, 'cuádruple': 4, 'quintuple': 5, 'quíntuple': 5, 'sextuple': 6, 'séxtuple': 6 };\n\nfunction buscarPrecioMedallonExtra() {\n  var row = storeData.find(function(r) { return r.display_name === 'MEDALLÓN + QUESO EXTRA' && r.is_active !== false; });\n  return row ? parseFloat(row.value) : 0;\n}\n\nfunction buscarPrecioItem(patty_size, combo, guarnecion) {\n  var g = (guarnecion || '').toLowerCase().trim();\n  var ps = (patty_size || '').toLowerCase().trim();\n  if (!combo) {\n    var key = ('hamburguesa ' + ps).toLowerCase();\n    var row = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === key && r.is_active !== false;\n    });\n    if (row) return parseFloat(row.value);\n    var n = medallonCount[ps] || 0;\n    if (n > 3) {\n      var tripleRow = storeData.find(function(r) { return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === 'hamburguesa triple' && r.is_active !== false; });\n      if (tripleRow) return parseFloat(tripleRow.value) + (n - 3) * buscarPrecioMedallonExtra();\n    }\n    return null;\n  }\n  var gKey = guarnecionToKey[g] || guarnecionToKey[''];\n  var searchKey = ('hamburguesa ' + ps + ' en combo ' + gKey).toLowerCase();\n  var row2 = storeData.find(function(r) {\n    return r.category === 'regla_precio' && r.is_active !== false && r.key.toLowerCase().replace(/_/g, ' ') === searchKey;\n  });\n  if (row2) return parseFloat(row2.value);\n  var fallbackKey = ('hamburguesa ' + ps + ' en combo con papas clasicas').toLowerCase();\n  var fallback = storeData.find(function(r) {\n    return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === fallbackKey && r.is_active !== false;\n  });\n  if (fallback) return parseFloat(fallback.value);\n  var n2 = medallonCount[ps] || 0;\n  if (n2 > 3) {\n    var tripleComboRow = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.is_active !== false &&\n        r.key.toLowerCase().replace(/_/g, ' ') === ('hamburguesa triple en combo ' + gKey).toLowerCase();\n    });\n    if (tripleComboRow) return parseFloat(tripleComboRow.value) + (n2 - 3) * buscarPrecioMedallonExtra();\n    var tripleClasRow = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.is_active !== false &&\n        r.key.toLowerCase().replace(/_/g, ' ') === 'hamburguesa triple en combo con papas clasicas';\n    });\n    if (tripleClasRow) return parseFloat(tripleClasRow.value) + (n2 - 3) * buscarPrecioMedallonExtra();\n  }\n  return null;\n}\n\nfunction buscarPrecioExtra(nombre) {\n  var row = storeData.find(function(r) {\n    return r.category === 'extra' && r.is_active !== false && r.display_name.toLowerCase() === (nombre || '').toLowerCase();\n  });\n  return row ? parseFloat(row.value) : null;\n}\n\nvar items = inputs.items.map(function(item) {\n  var guarnecion = (item.guarnecion || '').toLowerCase().trim();\n  // --- PRECIO ESPECIAL POR BURGER TYPE ---\n  // Burgers como la Black Truffle tienen precio fijo en sabor_hamburguesa (value > 0).\n  var precioEspecial = null;\n  if (item.burger_type) {\n    var burgerTypeNorm = (item.burger_type || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n    var burgerEspecial = storeData.find(function(r) {\n      if (r.category !== 'sabor_hamburguesa' || r.is_active === false || parseFloat(r.value) <= 0) return false;\n      var keyNorm = (r.key || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n      var displayNorm = (r.display_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n      return keyNorm.includes(burgerTypeNorm) || displayNorm.includes(burgerTypeNorm) ||\n             burgerTypeNorm.includes('blacktruffle') || burgerTypeNorm.includes('btb') ||\n             burgerTypeNorm.includes('lacampeona');\n    });\n    if (burgerEspecial) precioEspecial = parseFloat(burgerEspecial.value);\n  }\n  var precioCalculado = precioEspecial !== null ? precioEspecial : buscarPrecioItem(item.patty_size, item.combo, guarnecion);\n  var observations = item.observations || '';\n  if (guarnecion && guarnecionToObs[guarnecion]) {\n    var obs = guarnecionToObs[guarnecion];\n    if (item.observations && item.observations.toUpperCase().indexOf('CAMBIO') === -1) {\n      observations = obs + ' - ' + item.observations;\n    } else {\n      observations = obs;\n    }\n  }\n  var itemLimpio = Object.assign({}, item);\n  delete itemLimpio.guarnecion;\n  return Object.assign({}, itemLimpio, {\n    price: precioCalculado !== null ? precioCalculado : (parseFloat(item.price) || 0),\n    observations: observations\n  });\n});\n\nvar extras = (inputs.extras || []).map(function(extra) {\n  var precioCalculado = buscarPrecioExtra(extra.name);\n  return Object.assign({}, extra, {\n    price: precioCalculado !== null ? precioCalculado : (parseFloat(extra.price) || 0)\n  });\n});\n\nreturn {\n  json: Object.assign({}, inputs, {\n    items: items,\n    extras: extras.length > 0 ? extras : (inputs.extras || [])\n  })\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        352
+      ],
+      "id": "99887766-5544-3322-1100-ffeeddccbbaa",
+      "name": "calcular-precios"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "order_number": 12,
+          "nombre": "felipe",
+          "monto": 27500,
+          "direccion_envio": null,
+          "items": [
+            {
+              "combo": true,
+              "quantity": 1,
+              "removals": null,
+              "additions": null,
+              "price": "14500",
+              "patty_size": "triple",
+              "burger_type": "roses",
+              "guarnecion": "papas_cheddar"
+            },
+            {
+              "combo": true,
+              "quantity": 1,
+              "removals": null,
+              "additions": null,
+              "price": "13000",
+              "patty_size": "doble",
+              "burger_type": "chesse bacon",
+              "guarnecion": ""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "auto-correcion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "auto-correcion": {
+      "main": [
+        [
+          {
+            "node": "Fetch store_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch store_data": {
+      "main": [
+        [
+          {
+            "node": "calcular-precios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcular-precios": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Editar pedido": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Editar pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8de84db9-93bb-4f88-9171-36157a4526ba",
+  "meta": {
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "rvTDAY5Usow2HKFl",
+  "tags": []
+}

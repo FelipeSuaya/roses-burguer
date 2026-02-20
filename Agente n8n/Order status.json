@@ -1,0 +1,87 @@
+{
+  "name": "My Sub-Workflow 8",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"order_number\": 15\n}"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wiccnzhlzmtftgowbmkg.supabase.co/functions/v1/get-order-status",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"order_number\": {{ $json.order_number }}\n}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        352
+      ],
+      "id": "0199a4fd-5dc3-41b6-beee-d9654a24030b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"found\": {{ $json.found }},\n  \"order_number\": {{ $json.order_number }},\n  \"status\": \"{{ $json.status }}\",\n  \"cadete_salio\": {{ $json.cadete_salio }},\n  \"message\": \"{{ $json.message }}\"\n}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        352
+      ],
+      "id": "fe53c005-1af4-4c00-bb27-334eddba6947",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "70685681-bf7f-41d2-9122-d980a07d7ccd",
+  "meta": {
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "VM9Qo0citfchifim",
+  "tags": []
+}

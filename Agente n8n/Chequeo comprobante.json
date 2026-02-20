@@ -1,0 +1,773 @@
+{
+  "name": "Chequeo comprobante",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.link }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "154e8cf5-8e60-42f9-b845-998063f8e080"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Imagen"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -3088,
+        608
+      ],
+      "id": "c36e0c94-9731-4651-be7a-354cdb8e9971",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -2640,
+        512
+      ],
+      "id": "a42cfb32-2d65-46eb-b981-f0908c089ab5",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2848,
+        512
+      ],
+      "id": "16bb23c7-19e1-435d-bd86-dd4e68b55948",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}{{ $json.content.parts[0].text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Extrae la fecha y hora exacta, numero de operación, el monto total del pago y a quien se lo mando.\n\nformato json\n{\n\t\"fecha y hora\": \"dd/mm/yy 20:46\",\n\t\"monto total\": \"18000\",\n        \"numero de operacion\":\"123456789101\",\n        \"destinatario\": \"Marcelo Cardona\"\n}\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -2368,
+        608
+      ],
+      "id": "3a17ef8e-ea84-405d-9e51-21b10f1160e1",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -2416,
+        816
+      ],
+      "id": "ffb86529-634b-4c68-a5f0-67023c33b30e",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "dJipUUtjtMvi9hmo",
+          "name": "Tu Gruero OFICIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"fecha y hora\": \"dd/mm/yy 20:46\",\n\t\"monto total\": \"18000\",\n    \"numero de operacion\":\"123456789101\",\n    \"destinatario\": \"Marcelo Cardona\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -2208,
+        816
+      ],
+      "id": "9a332c7d-c7d8-4280-845f-2536b779039b",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ace4d504-5fb0-418d-85e9-91e8f493ee16",
+              "name": "=La fecha del comprobante es incorrecta, corresponde al {{ $json.output['fecha y hora'] }} y hoy es {{ $now.format('dd/MM/yy HH:mm') }}",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1840,
+        720
+      ],
+      "id": "cf5e3f07-dd6b-4bd5-be47-39a0f45b6a83",
+      "name": "fecha y hora incorrecta3",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1X9m0PSmkqeoi5XjkaaTsNcvAJkA3evjwk-ihMMQHuRg",
+          "mode": "list",
+          "cachedResultName": "comprobantes roses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X9m0PSmkqeoi5XjkaaTsNcvAJkA3evjwk-ihMMQHuRg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X9m0PSmkqeoi5XjkaaTsNcvAJkA3evjwk-ihMMQHuRg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Link": "={{ $('When Executed by Another Workflow').item.json.link }}",
+            "Destinatario": "={{ $('Basic LLM Chain1').item.json.output.destinatario }}",
+            "Número de operación": "={{ $('Basic LLM Chain1').item.json.output['numero de operacion'] }}",
+            "Monto total": "={{ $('Basic LLM Chain1').item.json.output['monto total'] }}",
+            "Fecha y hora": "={{ $('Basic LLM Chain1').item.json.output['fecha y hora'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha y hora",
+              "displayName": "Fecha y hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Monto total",
+              "displayName": "Monto total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Número de operación",
+              "displayName": "Número de operación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Destinatario",
+              "displayName": "Destinatario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1392,
+        320
+      ],
+      "id": "ee44f2f7-70b9-4af7-8b75-25a5bb282cb0",
+      "name": "comprobante datos1",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PQMnbPi3RlVRcDUZ",
+          "name": "cardo sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output['fecha y hora'] }}",
+                    "rightValue": "={{ $now.format('dd/MM/yy') }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "1df35719-f504-4087-9700-480c5ac3900e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cor"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Inc"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -2016,
+        608
+      ],
+      "id": "f7af2e26-d2fc-48c6-9227-0426e690895c",
+      "name": "Switch5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output['monto total'].toNumber() }}",
+                    "rightValue": "={{ $('When Executed by Another Workflow').item.json.montoTotal }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "55925a1f-f6a0-46d5-a627-cf637ae8ae06"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cor"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Inc"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1808,
+        512
+      ],
+      "id": "284baee5-2088-4807-a9e4-e936ff6836e9",
+      "name": "Switch6"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.destinatario.toUpperCase() }}",
+                    "rightValue": "=ROCASU",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "55925a1f-f6a0-46d5-a627-cf637ae8ae06"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cor"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Inc"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1600,
+        400
+      ],
+      "id": "0740af84-1f4b-4212-ae47-ff2df4c17229",
+      "name": "Switch7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ace4d504-5fb0-418d-85e9-91e8f493ee16",
+              "name": "=El monto total transferido no coincide con el que debería haber envíado. Mando {{ $json.output['monto total'] }} y debería haber envíado {{ $('When Executed by Another Workflow').item.json.montoTotal }}.",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1600,
+        576
+      ],
+      "id": "07d95118-d0db-427f-9099-b94e0cbaf95c",
+      "name": "fecha y hora incorrecta4",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ace4d504-5fb0-418d-85e9-91e8f493ee16",
+              "name": "=El destinatario es el incorrecto",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        464
+      ],
+      "id": "88f99227-720d-4809-9bd2-dbcd6afaa6bd",
+      "name": "fecha y hora incorrecta5",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "88e68537-99a6-4c40-8cf5-44b2e3b1c265",
+              "name": "response",
+              "value": "=El comprobante esta bien",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1200,
+        320
+      ],
+      "id": "020019f4-e301-4e19-8454-1c0ddb546533",
+      "name": "comprobante correcto",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-lite-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-lite-latest"
+        },
+        "text": "Primero chequea que la imagen sea un comprobante. Si lo es extrae todos los datos de forma ordenada. ENVÍAME TODOS LOS DATOS DEL COMPROBANTE. Estamos habilitados a hacerlo.",
+        "imageUrls": "={{ $json.link }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2848,
+        720
+      ],
+      "id": "69b6a855-e5de-467b-bc64-ef5a3136aa31",
+      "name": "Analyze image",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rvbeghLWpsSjfaRO",
+          "name": "cardo"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5081d57c-ad0a-43e9-badf-a28687fd62f3",
+              "name": "text",
+              "value": "={{ $json.content.parts[0].text  ? $json.content.parts[0].text  : \"error_tecnico\" }} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2640,
+        704
+      ],
+      "id": "16d5406c-c26e-4229-a404-9a0b5d38ae84",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "link"
+            },
+            {
+              "name": "montoTotal",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "b1245362-eb98-4aa6-be4a-6ce349fa4c92",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -3312,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5081d57c-ad0a-43e9-badf-a28687fd62f3",
+              "name": "text",
+              "value": "=El comprobante esta bien",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2688,
+        960
+      ],
+      "id": "2b08d4ac-d2c2-479d-8fcb-f1966ccbb8c8",
+      "name": "error_manual"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch7": {
+      "main": [
+        [
+          {
+            "node": "comprobante datos1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "fecha y hora incorrecta5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comprobante datos1": {
+      "main": [
+        [
+          {
+            "node": "comprobante correcto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch5": {
+      "main": [
+        [
+          {
+            "node": "Switch6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "fecha y hora incorrecta3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch6": {
+      "main": [
+        [
+          {
+            "node": "Switch7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "fecha y hora incorrecta4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error_manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "error_manual": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "440549fb-42fa-4b95-b590-fa39e494057c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "sQ1TWPELaG0g0VmQ",
+  "tags": []
+}

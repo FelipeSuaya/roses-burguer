@@ -1,0 +1,492 @@
+{
+  "name": "Subir",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"nombre\": \"Felipe\",\n  \"telefono\": \"5493413853145\",\n  \"monto\": 31000,\n  \"hora_programada\": \"21:30\",\n  \"metodo_pago\": \"efectivo\",\n  \"direccion_envio\": \"Sarratea 691 (PORTON NEGRO)\",\n  \"paga_con\": 40000,\n  \"vuelto\": 9000,\n  \"items\": [\n    {\n      \"combo\": true,\n      \"quantity\": 1,\n      \"removals\": [],\n      \"additions\": [],\n      \"price\": 13000,\n      \"patty_size\": \"doble\",\n      \"burger_type\": \"Cheeseburger\",\n      \"observations\": \"CAMBIO X AROS DE CEBOLLA\"\n    },\n    {\n      \"combo\": true,\n      \"quantity\": 1,\n      \"removals\": [\"cebolla\"],\n      \"additions\": [\"medallon extra\"],\n      \"price\": 18000,\n      \"patty_size\": \"triple\",\n      \"burger_type\": \"Ruby Clove\",\n      \"observations\": \"\"\n    }\n  ],\n  \"extras\": [] \n}"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -256,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://wiccnzhlzmtftgowbmkg.supabase.co/functions/v1/receive-order",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('calcular-precios').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1696,
+        288
+      ],
+      "id": "563a7231-33aa-4b31-8349-d16ea21a9208",
+      "name": "Crear pedido"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be2aa599-142d-4ceb-bf36-540985b8d26a",
+              "name": "response",
+              "value": "=Es obligatorio que le digas al usuario exactamente lo siguiente: \"¡Listo {{ $('When Executed by Another Workflow').item.json.nombre }}! Tu pedido #{{ $json.order.order_number }} ya marcha a la cocina. Gracias 🍔\"\n\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1872,
+        288
+      ],
+      "id": "b25ba610-2ab6-4b59-a56e-40c9ab5a8b07",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefono",
+              "condition": "eq",
+              "keyValue": "={{ $json.telefono }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        256,
+        336
+      ],
+      "id": "a57bc2cf-1ebd-4c8a-8e97-a21dc5e5b047",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.nombre }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "26418832-dbe1-4013-8959-0d56fa16fe3c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Tiene pedido"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "No tiene"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        272
+      ],
+      "id": "35481231-33b8-4b9a-9b38-402c626e1a6c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.resultado }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "2c00f130-dec9-4097-9ee0-0a3ec1a29986"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        144
+      ],
+      "id": "b6edb527-3e62-4bb5-9908-150b740c9e16",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "fecha"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        656,
+        144
+      ],
+      "id": "4c8cbda8-06c2-4c1f-8088-d2ca370556a4",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst fechas = Array.isArray(data.fecha) ? data.fecha : [data.fecha].filter(Boolean);\n\nconst zona = 'America/Argentina/Buenos_Aires';\nconst ahora = DateTime.now().setZone(zona);\nconst haceUnaHora = ahora.minus({ hours: 1 });\n\nconst resultados = fechas.map(f => {\n  const dt = DateTime.fromISO(f, { setZone: true });\n  const fechaPedido = dt.isValid ? dt.setZone(zona) : null;\n\n  const dentroUltimaHora = !!fechaPedido && fechaPedido >= haceUnaHora && fechaPedido <= ahora;\n\n  return {\n    fecha: f,\n    dentroUltimaHora\n  };\n});\n\nreturn resultados;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        144
+      ],
+      "id": "6a285f3d-d331-4503-97cb-5d721b080ec3",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        144
+      ],
+      "id": "ab54231a-a202-4ee4-a255-f0770dc58575",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be2aa599-142d-4ceb-bf36-540985b8d26a",
+              "name": "response",
+              "value": "=Ya hizo un pedido hace una hora. Quizas quiere cambiarlo. El pedido era el: \"{{ $('Get many rows').item.json.order_number }}\"",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        96
+      ],
+      "id": "6e77111b-e183-49e2-948f-fe1173c4ecfb",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtenemos el array desde el JSON de entrada\nconst data = $input.first().json.data;\n\n// Verificamos si hay al menos un elemento con dentroUltimaHora === true\nconst hayAlgunoTrue = Array.isArray(data) && data.some(item => item.dentroUltimaHora === true);\n\n// Devolvemos el resultado como output del nodo\nreturn [{ resultado: hayAlgunoTrue }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        144
+      ],
+      "id": "561b44c4-bc1f-48ca-9d73-ebb29d7c49a6",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtenemos lo que manda el Agente\nconst inputs = $input.all()[0].json;\nlet itemsRaw = inputs.items;\n\ntry {\n  let itemsParsed;\n\n  // CASO A: Si ya viene como objeto (array), genial.\n  if (Array.isArray(itemsRaw)) {\n    itemsParsed = itemsRaw;\n  } \n  // CASO B: Si viene como texto (String), hay que limpiarlo y parsearlo.\n  else if (typeof itemsRaw === 'string') {\n    \n    // 1. LIMPIEZA BÁSICA (Tu código original)\n    let cleanJson = itemsRaw\n      .replace(/```json/g, '') // Quita inicio de bloque de código\n      .replace(/```/g, '')     // Quita fin de bloque\n      .trim();                 // Quita espacios extra\n\n    // 2. 🚑 PARCHE \"ANTI-PYTHON\" (Lo nuevo para arreglar el error de ayer)\n    // La IA a veces manda formato Python ({'key': 'val', 'bool': True})\n    // JSON.parse ODIA eso, así que lo arreglamos a la fuerza:\n    cleanJson = cleanJson\n      .replace(/'/g, '\"')       // Cambia todas las comillas simples por dobles\n      .replace(/True/g, 'true') // Cambia True por true\n      .replace(/False/g, 'false') // Cambia False por false\n      .replace(/None/g, 'null'); // Por si manda None (Python) en vez de null\n\n    // 3. Intentamos convertir el texto a Objeto real\n    itemsParsed = JSON.parse(cleanJson);\n    \n  } else {\n    throw new Error(\"El campo 'items' no es ni texto ni lista.\");\n  }\n\n  // VALIDACIÓN FINAL: ¿Es una lista lo que quedó?\n  if (!Array.isArray(itemsParsed)) {\n    throw new Error(\"La estructura final no es una lista [ ].\");\n  }\n\n  // ✅ ÉXITO: Devolvemos los datos limpios al siguiente nodo\n  return {\n    json: {\n      ...inputs,        // Mantenemos el nombre, dirección, etc.\n      items: itemsParsed // Sobrescribimos los items con la versión arreglada\n    }\n  };\n\n} catch (error) {\n  // ⛔ ERROR: Si algo falla, explotamos con un mensaje claro para el Agente.\n  throw new Error(`ERROR TÉCNICO AL PROCESAR ITEMS: ${error.message}. La IA envió un formato que no pude leer.`);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        368
+      ],
+      "id": "95306f1e-8b3c-4d7f-a31b-cb385f4463cc",
+      "name": "auto-correcion"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "store_data",
+        "limit": 500
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        368
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Fetch store_data",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// CALCULAR-PRECIOS\n// Toma los items del agente y reemplaza el precio con el valor real de store_data.\n// El campo 'guarnecion' del item indica el acompañamiento del combo.\n\nconst inputs = $('auto-correcion').first().json;\nconst storeData = $input.all().map(function(i) { return i.json; });\n\nconst guarnecionToKey = {\n  '': 'con papas clasicas',\n  'clasicas': 'con papas clasicas',\n  'sazonadas': 'con papas sazonadas',\n  'papas_cheddar': 'con papas con cheddar y panceta',\n  'papas cheddar': 'con papas con cheddar y panceta',\n  'aros': 'con aros de cebolla',\n  'nuggets': 'con nuggets'\n};\n\nconst guarnecionToObs = {\n  'sazonadas': 'CAMBIO X PAPAS SAZONADAS',\n  'papas_cheddar': 'CAMBIO X PAPAS CHEDDAR',\n  'papas cheddar': 'CAMBIO X PAPAS CHEDDAR',\n  'aros': 'CAMBIO X AROS DE CEBOLLA',\n  'nuggets': 'CAMBIO X NUGGETS'\n};\n\nvar medallonCount = { 'simple': 1, 'doble': 2, 'triple': 3, 'cuadruple': 4, 'cuádruple': 4, 'quintuple': 5, 'quíntuple': 5, 'sextuple': 6, 'séxtuple': 6 };\n\nfunction buscarPrecioMedallonExtra() {\n  var row = storeData.find(function(r) { return r.display_name === 'MEDALLÓN + QUESO EXTRA' && r.is_active !== false; });\n  return row ? parseFloat(row.value) : 0;\n}\n\nfunction buscarPrecioItem(patty_size, combo, guarnecion) {\n  var g = (guarnecion || '').toLowerCase().trim();\n  var ps = (patty_size || '').toLowerCase().trim();\n  if (!combo) {\n    var key = ('hamburguesa ' + ps).toLowerCase();\n    var row = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === key && r.is_active !== false;\n    });\n    if (row) return parseFloat(row.value);\n    var n = medallonCount[ps] || 0;\n    if (n > 3) {\n      var tripleRow = storeData.find(function(r) { return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === 'hamburguesa triple' && r.is_active !== false; });\n      if (tripleRow) return parseFloat(tripleRow.value) + (n - 3) * buscarPrecioMedallonExtra();\n    }\n    return null;\n  }\n  var gKey = guarnecionToKey[g] || guarnecionToKey[''];\n  var searchKey = ('hamburguesa ' + ps + ' en combo ' + gKey).toLowerCase();\n  var row2 = storeData.find(function(r) {\n    return r.category === 'regla_precio' && r.is_active !== false && r.key.toLowerCase().replace(/_/g, ' ') === searchKey;\n  });\n  if (row2) return parseFloat(row2.value);\n  var fallbackKey = ('hamburguesa ' + ps + ' en combo con papas clasicas').toLowerCase();\n  var fallback = storeData.find(function(r) {\n    return r.category === 'regla_precio' && r.key.toLowerCase().replace(/_/g, ' ') === fallbackKey && r.is_active !== false;\n  });\n  if (fallback) return parseFloat(fallback.value);\n  var n2 = medallonCount[ps] || 0;\n  if (n2 > 3) {\n    var tripleComboRow = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.is_active !== false &&\n        r.key.toLowerCase().replace(/_/g, ' ') === ('hamburguesa triple en combo ' + gKey).toLowerCase();\n    });\n    if (tripleComboRow) return parseFloat(tripleComboRow.value) + (n2 - 3) * buscarPrecioMedallonExtra();\n    var tripleClasRow = storeData.find(function(r) {\n      return r.category === 'regla_precio' && r.is_active !== false &&\n        r.key.toLowerCase().replace(/_/g, ' ') === 'hamburguesa triple en combo con papas clasicas';\n    });\n    if (tripleClasRow) return parseFloat(tripleClasRow.value) + (n2 - 3) * buscarPrecioMedallonExtra();\n  }\n  return null;\n}\n\nfunction buscarPrecioExtra(nombre) {\n  var row = storeData.find(function(r) {\n    return r.category === 'extra' && r.is_active !== false && r.display_name.toLowerCase() === (nombre || '').toLowerCase();\n  });\n  return row ? parseFloat(row.value) : null;\n}\n\nfunction calcularEnvio(direccion) {\n  if (!direccion) return 0;\n  var d = direccion.toLowerCase();\n  if (d.indexOf('retira') !== -1 || d.indexOf('retiro') !== -1 || d.indexOf('local') !== -1) return 0;\n  if (d.indexOf('funes') !== -1) return 3000;\n  return 2500;\n}\n\nvar items = (inputs.items || []).map(function(item) {\n  var guarnecion = (item.guarnecion || '').toLowerCase().trim();\n  // --- PRECIO ESPECIAL POR BURGER TYPE ---\n  // Burgers como la Black Truffle tienen precio fijo en sabor_hamburguesa (value > 0).\n  var precioEspecial = null;\n  if (item.burger_type) {\n    var burgerTypeNorm = (item.burger_type || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n    var burgerEspecial = storeData.find(function(r) {\n      if (r.category !== 'sabor_hamburguesa' || r.is_active === false || parseFloat(r.value) <= 0) return false;\n      var keyNorm = (r.key || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n      var displayNorm = (r.display_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');\n      return keyNorm.includes(burgerTypeNorm) || displayNorm.includes(burgerTypeNorm) ||\n             burgerTypeNorm.includes('blacktruffle') || burgerTypeNorm.includes('btb') ||\n             burgerTypeNorm.includes('lacampeona');\n    });\n    if (burgerEspecial) precioEspecial = parseFloat(burgerEspecial.value);\n  }\n  var precioCalculado = precioEspecial !== null ? precioEspecial : buscarPrecioItem(item.patty_size, item.combo, guarnecion);\n  var observations = item.observations || '';\n  if (guarnecion && guarnecionToObs[guarnecion]) {\n    var obs = guarnecionToObs[guarnecion];\n    if (item.observations && item.observations.toUpperCase().indexOf('CAMBIO') === -1) {\n      observations = obs + ' - ' + item.observations;\n    } else {\n      observations = obs;\n    }\n  }\n  var itemLimpio = Object.assign({}, item);\n  delete itemLimpio.guarnecion;\n  return Object.assign({}, itemLimpio, {\n    price: precioCalculado !== null ? precioCalculado : (parseFloat(item.price) || 0),\n    observations: observations\n  });\n});\n\nvar extras = (inputs.extras || []).map(function(extra) {\n  var precioCalculado = buscarPrecioExtra(extra.name);\n  return Object.assign({}, extra, {\n    price: precioCalculado !== null ? precioCalculado : (parseFloat(extra.price) || 0)\n  });\n});\n\nvar envio = calcularEnvio(inputs.direccion_envio);\nvar itemsTotal = items.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0) * (item.quantity || 1); }, 0);\nvar extrasTotal = extras.reduce(function(sum, extra) { return sum + (parseFloat(extra.price) || 0) * (extra.quantity || 1); }, 0);\nvar monto = itemsTotal + extrasTotal + envio;\n\nreturn {\n  json: Object.assign({}, inputs, {\n    items: items,\n    extras: extras.length > 0 ? extras : (inputs.extras || []),\n    monto: monto\n  })\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        368
+      ],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "calcular-precios"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "nombre": "Desiree",
+          "telefono": "5493415213814",
+          "monto": 16000,
+          "hora_programada": "",
+          "metodo_pago": "efectivo",
+          "direccion_envio": "calle 1483 #9522, Fisherton",
+          "items": [
+            {
+              "burger_type": "ROSES",
+              "quantity": 1,
+              "combo": true,
+              "patty_size": "simple",
+              "price": 13500,
+              "removals": null,
+              "additions": null
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "auto-correcion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear pedido": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "auto-correcion": {
+      "main": [
+        [
+          {
+            "node": "Fetch store_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch store_data": {
+      "main": [
+        [
+          {
+            "node": "calcular-precios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calcular-precios": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "684c8ba2-d10f-4d7a-85e5-88e8e544924f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "j9kx6cxtwdCXo6Q7",
+  "tags": []
+}

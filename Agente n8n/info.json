@@ -1,0 +1,131 @@
+{
+  "name": "info",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "store_data",
+        "limit": 81,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "category",
+              "condition": "eq",
+              "keyValue": "sabor_hamburguesa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        496,
+        352
+      ],
+      "id": "6723ef78-78d5-42a7-9829-02b711f44ec3",
+      "name": "Get many rows1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Obtener los datos de Supabase\nconst items_db = items.map(i => i.json);\n\n// 2. Armar el listado limpio\nlet respuesta = \"\";\n\nitems_db.forEach(b => {\n    // Filtramos solo las hamburguesas activas\n    if (b.category === 'sabor_hamburguesa' && b.is_active) {\n        // Obtenemos ingredientes o un texto por defecto\n        const ings = (b.metadata && b.metadata.ingredientes) ? b.metadata.ingredientes : \"Ingredientes no especificados\";\n        \n        // Formato estricto: \"NOMBRE: ingredientes\"\n        respuesta += `${b.display_name}: ${ings}\\n`;\n    }\n});\n\nreturn { json: { resultado: respuesta } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        352
+      ],
+      "id": "c0251803-5b5f-4950-a441-58bf9338cbcb",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca7cc16b-e957-4015-9e4e-1de08ea4544c",
+              "name": "resultado",
+              "value": "={{ $json.resultado }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        352
+      ],
+      "id": "13dfde2a-c7f5-4bd7-bce6-b3e21c9cab4d",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4693ef92-b4ac-446b-91ba-352f0efcd436",
+  "meta": {
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "vr1F1fyhi918dprg",
+  "tags": []
+}

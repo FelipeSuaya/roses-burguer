@@ -1,0 +1,113 @@
+{
+  "name": "My Sub-Workflow 11",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "motivo"
+            },
+            {
+              "name": "nombre_cliente"
+            },
+            {
+              "name": "telefono_cliente"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        288,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { result: \"Aviso enviado con éxito.\" } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        368
+      ],
+      "id": "0b30fa9b-8033-4ace-8750-c7ef6df0e956",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "sendTo": "rrhh.rosesburgers@gmail.com",
+        "subject": "🚨 ALERTA ROSES: Cliente Pide Ayuda",
+        "emailType": "text",
+        "message": "=Hola Felipe,\n\nUn cliente necesita asistencia humana.\n\n👤 Nombre:{{ $json.nombre_cliente }}\n📞 Teléfono: {{ $json.telefono_cliente }}\n📝 Motivo: {{ $json.motivo }}\n\nSaludos,\nTu Bot 🤖",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        368
+      ],
+      "id": "c6b3f4ea-d00f-486d-8e69-69b95f95affb",
+      "name": "Send a message",
+      "webhookId": "8765ef3f-5106-4e44-a7f6-91fefddaec28",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "S4eT1U5c0wDvMfVj",
+          "name": "cardo mail"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "motivo": "El cliente quiere hablar con un humano y ya se le avisó una vez, pero insiste.",
+          "nombre_cliente": "Felipe",
+          "telefono_cliente": "3413853145"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "976ad119-f3c1-4c53-b42d-918f89cd5da2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "9aVNlih0QRCofibb",
+  "tags": []
+}

@@ -1,0 +1,1487 @@
+{
+  "name": "Roses Burguer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "roses",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        272,
+        -80
+      ],
+      "id": "4985dd4f-f528-43df-862f-5b3247bbb1e5",
+      "name": "Webhook",
+      "webhookId": "2ff10ef2-2049-42d5-9c76-35bf197e9c27"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.chatrace.com/contacts/{{ $('Merge').first().json.body.id}}/send/text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-ACCESS-TOKEN",
+              "value": "={{ $('Merge').first().json['api-key'] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "name": "channel",
+              "value": "omnichannel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2656,
+        16
+      ],
+      "id": "eb3286dd-9338-4080-b742-4c110668a9c9",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Merge').first().json.body.id}}",
+        "tableName": "n8n_chat_histories_pruebasFeli",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1904,
+        256
+      ],
+      "id": "5d0f06d0-7e57-4bb2-8764-bd1cd913cf29",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "KDX6DtVDEDzT6H77",
+          "name": "Postgres Server2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        256
+      ],
+      "id": "d282382a-49c2-4981-abe8-9a0b4fc73fd2",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "description": "Esta función te permite chequear el comprobante de pago para ver si es correcto",
+        "workflowId": {
+          "__rl": true,
+          "value": "sQ1TWPELaG0g0VmQ",
+          "mode": "list",
+          "cachedResultName": "Chequeo comprobante"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "link": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('link', `(link correspondiente al documento)`, 'string') }}",
+            "montoTotal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('montoTotal', `Deberás envíar en número el total a pagar por transferencia  únicamente. Ser preciso es de suma importancia.`, 'number') }}"
+          },
+          "matchingColumns": [
+            "link"
+          ],
+          "schema": [
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "montoTotal",
+              "displayName": "montoTotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2512,
+        256
+      ],
+      "id": "b55a5012-f200-4400-a7a5-fc082a00a96e",
+      "name": "chequear comprobante"
+    },
+    {
+      "parameters": {
+        "operation": "deactivate",
+        "workflowId": {
+          "__rl": true,
+          "value": "WikQUxxrKNiM7n1Q",
+          "mode": "list",
+          "cachedResultName": "Roses Burguer (#WikQUxxrKNiM7n1Q)"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        -208
+      ],
+      "id": "a1183701-6f23-4407-940b-953a306a77d7",
+      "name": "Deactivate a workflow",
+      "notesInFlow": true,
+      "credentials": {
+        "n8nApi": {
+          "id": "FtYIQIBmTnPMpeoB",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.headers['x-user-id'] }}",
+                    "rightValue": "5493412002909",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "bc1fc9b7-4aef-4efc-a236-55ec0f809982"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "=Nico"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Otros"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "6e276d43-d10c-45aa-bf75-56bbfa728472",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Con esta función podrás obtener la información de>\n- Demoras\n- Promociones\n- Tipos de hamburguesas con precios\n- Hamburguesas con ingredientes\n- Extras con precios",
+        "documentId": {
+          "__rl": true,
+          "value": "1j5UqiUR4fBApJJnXB6kVoFVO86UeK88uqb6HyKRXA7U",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Sheet', `Esta herramienta tiene acceso a la base de datos completa del negocio. Debes seleccionar la hoja (Sheet) correcta de esta lista según la consulta:\n\n1. \"Ingredientes hamburguesas\": [PRIORIDAD ALTA] Úsala para verificar STOCK (Columna H) y consultar los ingredientes de cada hamburguesa.\n2. \"Hamburguesas\": Úsala para ver la lista de PRECIOS de hamburguesas solas y en combo.\n3. \"Extras\": Úsala para ver precios y stock de agregados (Papas, Aros, Nuggets, Cheddar, etc.).\n4. \"Demora fisherton\": Úsala para consultar el tiempo de espera actual para envíos a Fisherton.\n5. \"Demora funes\": Úsala para consultar el tiempo de espera actual para envíos a Funes.\n6. \"Demora retiro por el local\": Úsala para consultar el tiempo de espera para Take Away.\n7. \"Precio del envio\": Úsala para cotizar el costo del delivery según la zona.\n8. \"Promociones\": Úsala para ver si hay ofertas vigentes.\n\nREGLA DE ORO: Antes de confirmar cualquier pedido de hamburguesa, DEBES consultar la hoja \"Ingredientes hamburguesas\" para asegurar que la columna Stock diga \"SI\".`, 'string') }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2416,
+        496
+      ],
+      "id": "341b8d5f-48b2-4587-a2a5-455c480bc1ce",
+      "name": "info",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O8l57v4vOhPpyMhr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "\"Generar un JSON Array válido. Ejemplo: [{\"burger_type\": \"Nombre\", \"quantity\": 1, \"combo\": true, \"price\": 10000}]. NO usar None, NO usar True, NO usar comillas simples.\"",
+        "workflowId": {
+          "__rl": true,
+          "value": "j9kx6cxtwdCXo6Q7",
+          "mode": "list",
+          "cachedResultName": "Subir"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nombre', `Ejemplo: Jose Martinez`, 'string') }}",
+            "telefono": "={{ $('Merge').first().json.body.id}}",
+            "monto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('monto', `Ejemplo: 18400`, 'number') }}",
+            "metodo_pago": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('metodo_pago', `\"Si es simple: 'efectivo' o 'transferencia'. Si es MIXTO: Array JSON con los montos, ej: [{ 'metodo': 'transferencia', 'monto': 30000 }, { 'metodo': 'efectivo', 'monto': 20000 }]\"`, 'string') }}",
+            "direccion_envio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('direccion_envio', `Ejemplo: \"sarratea 691\"`, 'string') }}",
+            "items": "={{ $fromAI('items', `Genera un JSON array con los items del pedido. Ejemplo: [{ \"burger_type\": \"Nombre exacto de la hamburguesa\", \"quantity\": 1, \"combo\": true, \"patty_size\": \"doble\", \"price\": 12000, \"guarnecion\": \"clasicas\", \"removals\": [\"cebolla\"], \"additions\": [\"panceta\"] }] REGLAS: - \"guarnecion\": indica el acompañamiento del combo. Valores válidos: \"clasicas\" (default, dejar vacío si no piden cambio), \"sazonadas\", \"papas_cheddar\", \"aros\", \"nuggets\". SOLO completar si el cliente pide explícitamente un cambio de guarnición. - \"removals\": ingredientes que el cliente pide SACAR. - \"additions\": ingredientes extra a AGREGAR dentro de la hamburguesa. - \"price\": estimado, el sistema lo valida automáticamente. - Si es VEGETARIANA: poner \"medallón veggie\" en \"additions\".`, 'string') }}",
+            "hora_programada": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('hora_programada', `\"Hora de entrega en formato HH:mm (ej: '21:30'). Si es para ya, dejar vacío.\n`, 'string') }}",
+            "paga_con": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('paga_con', `40000`, 'number') }}",
+            "vuelto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('vuelto', `3000`, 'number') }}",
+            "extras": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('extras', `papas con cheddar`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "monto",
+              "displayName": "monto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "hora_programada",
+              "displayName": "hora_programada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "metodo_pago",
+              "displayName": "metodo_pago",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "direccion_envio",
+              "displayName": "direccion_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "paga_con",
+              "displayName": "paga_con",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "vuelto",
+              "displayName": "vuelto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "extras",
+              "displayName": "extras",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        256
+      ],
+      "id": "85fceb34-4ebe-4fc0-8f07-e57b7660ec7f",
+      "name": "crear pedido"
+    },
+    {
+      "parameters": {
+        "description": "\"Editar un pedido existente. Para 'items' y 'extras' usar JSON Arrays. Para 'metodo_pago' usar texto simple (ej: 'efectivo') o JSON si es mixto.\"\n\n",
+        "workflowId": {
+          "__rl": true,
+          "value": "rvTDAY5Usow2HKFl",
+          "mode": "list",
+          "cachedResultName": "Editar"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nombre": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nombre', ``, 'string') }}",
+            "monto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('monto', ``, 'number') }}",
+            "items": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('items', `Mismo formato que crear_pedido. Array de items con: burger_type, quantity, combo, patty_size, price, guarnecion (si cambia guarnición: clasicas/sazonadas/papas_cheddar/aros/nuggets), removals, additions.`, 'string') }}",
+            "order_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_number', ``, 'number') }}",
+            "direccion_envio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('direccion_envio', ``, 'string') }}",
+            "hora_programada": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('hora_programada', `Hora de entrega en formato HH:mm. Si no cambia, no enviar.`, 'string') }}",
+            "vuelto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('vuelto', ``, 'number') }}",
+            "paga_con": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('paga_con', ``, 'number') }}",
+            "extras": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('extras', ``, 'string') }}",
+            "metodo_pago": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('metodo_pago', `\"Si es simple: 'efectivo' o 'transferencia'. Si es MIXTO: Array JSON con los montos, ej: [{ 'metodo': 'transferencia', 'monto': 30000 }, { 'metodo': 'efectivo', 'monto': 20000 }]\"`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "order_number",
+              "displayName": "order_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "monto",
+              "displayName": "monto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "hora_programada",
+              "displayName": "hora_programada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "metodo_pago",
+              "displayName": "metodo_pago",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "paga_con",
+              "displayName": "paga_con",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "vuelto",
+              "displayName": "vuelto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "direccion_envio",
+              "displayName": "direccion_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "extras",
+              "displayName": "extras",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2256,
+        256
+      ],
+      "id": "f9efec71-c456-4340-b8d1-52e0b0db4b59",
+      "name": "editar pedido"
+    },
+    {
+      "parameters": {
+        "description": "Enviar información completa del pedido. \n\nTenes que enviar el numero de pedido como identificador",
+        "workflowId": {
+          "__rl": true,
+          "value": "dMx500fimngbr4DS",
+          "mode": "list",
+          "cachedResultName": "Eliminar"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_number', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "order_number"
+          ],
+          "schema": [
+            {
+              "id": "order_number",
+              "displayName": "order_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        256
+      ],
+      "id": "4ff43e14-6eed-42f0-92da-ad2e9a108da8",
+      "name": "eliminar pedido"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "551507ac-a154-43d1-9fb0-1ff8731ec3f0",
+              "leftValue": "={{ $json.body.message.toLowerCase() }}",
+              "rightValue": "parar",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        -128
+      ],
+      "id": "53bdc87f-aa05-49c4-a253-f13543567fa0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "VM9Qo0citfchifim",
+          "mode": "list",
+          "cachedResultName": "My Sub-Workflow 8"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_number', ``, 'number') }}"
+          },
+          "matchingColumns": [
+            "order_number"
+          ],
+          "schema": [
+            {
+              "id": "order_number",
+              "displayName": "order_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        256
+      ],
+      "id": "5d0043c0-a491-4245-bad4-752982580184",
+      "name": "estado del cadete"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        256
+      ],
+      "id": "f16f5919-4516-42f3-bc1c-b3002ae17ea8",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dsiVyRoHBGd2XudI",
+          "name": "Tu Gruero"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Úsala cuando el cliente pida hablar con una persona, esté enojado o la situación sea compleja.",
+        "workflowId": {
+          "__rl": true,
+          "value": "9aVNlih0QRCofibb",
+          "mode": "list",
+          "cachedResultName": "My Sub-Workflow 11"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "motivo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('motivo', ``, 'string') }}",
+            "nombre_cliente": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nombre_cliente', ``, 'string') }}",
+            "telefono_cliente": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('telefono_cliente', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "motivo",
+              "displayName": "motivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "nombre_cliente",
+              "displayName": "nombre_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "telefono_cliente",
+              "displayName": "telefono_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2960,
+        256
+      ],
+      "id": "b7a85879-d1d0-4601-a45e-3f11ea8703b8",
+      "name": "humano vol2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e857d8bb-694e-496d-8d26-fdad1098a857",
+              "leftValue": "={{ $('AI Agent').item.json.output }}",
+              "rightValue": "=285079743009419793464",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2928,
+        16
+      ],
+      "id": "8d742e4b-1e10-4da2-9f05-62d63536b385",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3136,
+        112
+      ],
+      "id": "c9ce5b4a-7e56-4abd-9954-c1cc8216eb1a",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.chatrace.com/contacts/{{ $('Merge').first().json.body.id}}/send/1769808947400",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-ACCESS-TOKEN",
+              "value": "={{ $('Merge').first().json['api-key'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3136,
+        -80
+      ],
+      "id": "6e66c272-c21e-409f-bff6-1bb1221a34a1",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "description": "Sos un semáforo del flujo. Tu trabajo es decir qué hacer ahora y nada más. No llames herramientas ni hables con el cliente.\n\nCuándo:\n- PREGUNTAR: falta dato clave (hamburguesa/tamaño/combo, extras, nombre, modalidad, dirección+Funes|Fisherton si es domicilio, método de pago).\n- INFO: piden menú/precios/demoras o hay dudas de precios/envío. (Nunca inventes precios).\n- CALCULAR: ya tenés items completos (con guarnecion si aplica), extras y zona. Llamar a calcular_total para obtener el desglose real.\n- VALIDAR_COMPROBANTE: eligió transferencia y mandó comprobante sin validar.\n- CREAR: tenés items, nombre, modalidad (y dirección+zona si domicilio), método de pago OK; si es transferencia, comprobante validado; y **aún no se creó** este pedido.\n- EDITAR: piden cambiar algo y hay número de pedido.\n- ELIMINAR: piden cancelar y hay número de pedido (solo si dentro de 10 min).\n- NADA: no hay acción segura (o ya está creado y no pidieron otro).\n\nSalida en UNA línea (sin JSON, sin markdown):\nACCION=<PREGUNTAR|INFO|CALCULAR|VALIDAR_COMPROBANTE|CREAR|EDITAR|ELIMINAR|NADA>; FALTAN=<campos faltantes o - >; MOTIVO=<breve>\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        496
+      ],
+      "id": "c1df86f7-c79a-4f10-8457-c448c41fc8a4",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "description": "Calculá el desglose de precios exacto del pedido antes de mostrar la confirmación al cliente. Llamar SIEMPRE antes de pedir confirmación. Devuelve el campo 'resumen' con el texto formateado y 'monto_total' con el número.",
+        "workflowId": {
+          "__rl": true,
+          "value": "CalcTotalId00001",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "items": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('items', `Array de items del pedido. Cada item: burger_type, patty_size, combo (bool), guarnecion (clasicas/sazonadas/papas_cheddar/aros/nuggets), quantity, removals, additions.`, 'string') }}",
+            "extras": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('extras', `Array de extras con name y quantity. Pasar array vacío [] si no hay extras.`, 'string') }}",
+            "direccion_envio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('direccion_envio', `Dirección de entrega completa, o 'retiro en local' si es take away.`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "extras",
+              "displayName": "extras",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "direccion_envio",
+              "displayName": "direccion_envio",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        496
+      ],
+      "id": "ca1cu1ar-t0t4-l000-0000-calc00000001",
+      "name": "calcular total"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "store_data",
+        "limit": 500
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        16
+      ],
+      "id": "76f2f24c-7a13-4c28-8588-84b944301b64",
+      "name": "Get many rows1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* \n   CÓDIGO DE CONTEXTO CORREGIDO - VERSIÓN COMPLETA \n   Incluye Promos, Extras y Pedidos Activos\n*/\n\n// 1. Obtener datos de la TIENDA (input actual)\nconst storeData = items.map(i => i.json);\n\n// 2. Obtener datos del PEDIDO ACTIVO (Intentamos leer de forma segurísima)\nlet activeOrder = null;\n\n// Buscamos si existe la ejecución del nodo anterior \"Get Active Order\"\n// Usamos el selector seguro $('NombreNodo').first().json\ntry {\n    if ($('Get Active Order').first().json && $('Get Active Order').first().json.id) {\n        activeOrder = $('Get Active Order').first().json;\n    }\n} catch (e) {\n    // Si falla la busqueda, no pasa nada, activeOrder queda null\n}\n\n// --- FECHA Y HORA ACTUAL (Argentina) ---\nconst now = new Date();\nnow.setHours(now.getHours() - 3); // Ajuste manual a GMT-3\nconst days = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];\nconst currentDay = days[now.getDay()];\nconst pad = (n) => n < 10 ? '0' + n : n;\nconst currentTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;\n\n// --- FUNCIONES AUXILIARES ---\nconst getCat = (cat) => storeData.filter(i => i.category === cat && i.is_active);\nconst getInactive = (cat) => storeData.filter(i => i.category === cat && !i.is_active);\n\n\n// Calculadora de Demora Segura\nfunction getDelay(zoneName) {\n  try {\n      const rules = storeData.filter(i => \n        i.category === 'regla_demora' && \n        i.metadata.zona === zoneName && \n        i.metadata.dia === currentDay\n      );\n      const activeRule = rules.find(r => currentTime >= r.metadata.hora_inicio && currentTime <= r.metadata.hora_fin);\n      \n      if (activeRule) return activeRule.value;\n      const defaultRule = rules.find(r => r.metadata.hora_inicio === \"00:00:00\");\n      return defaultRule ? defaultRule.value : \"Cerrado / Consultar\";\n  } catch (e) {\n      return \"Consultar\";\n  }\n}\n\n// --- ARMADO DEL TEXTO DE CONTEXTO ---\nlet text = `🚨 **ESTADO DEL RESTAURANT (${currentDay.toUpperCase()} ${currentTime})** 🚨\\n`;\ntext += `Usar esta información como VERDAD ABSOLUTA.\\n\\n`;\n\n// 1. INFORMACIÓN DEL PEDIDO ACTIVO (Prioridad Máxima)\nif (activeOrder) {\n    text += `📦 **PEDIDO ACTIVO ENCONTRADO (${activeOrder.nombre} - ID: ${activeOrder.order_number}):**\\n`;\n    text += `- Items actuales: ${JSON.stringify(activeOrder.items)}\\n`;\n    text += `- Extras actuales: ${JSON.stringify(activeOrder.extras)}\\n`;\n    text += `- Estado: ${activeOrder.status}\\n`;\n    text += `⚠️ **INSTRUCCIÓN:** El cliente YA tiene este pedido. SI QUIERE MODIFICARLO, USAR 'editar_pedido' CON EL ID ${activeOrder.order_number}. NO crear uno nuevo.\\n\\n`;\n} else {\n    text += `📦 **ESTADO PEDIDO:** El cliente NO tiene pedidos pendientes. Si necesita algo, creá uno nuevo.\\n\\n`;\n}\n\n// 2. PROMOCIONES (Lo que faltaba antes)\nconst promos = getCat('promo');\nif (promos.length > 0) {\n  text += \"🔥 **PROMOCIONES ACTIVAS:**\\n\";\n  promos.forEach(p => {\n    text += `👉 ${p.display_name}: ${p.value}\\n   (Condición: ${p.metadata.condicion || 'Ninguna'})\\n`;\n  });\n  text += \"\\n\";\n}\n\n// 3. TIEMPOS DE ESPERA\ntext += \"🕒 **DEMORAS:**\\n\";\ntext += `- Fisherton: ${getDelay('Fisherton')}\\n`;\ntext += `- Funes: ${getDelay('Funes')}\\n`;\ntext += `- Retiro Local: ${getDelay('Local')}\\n\\n`;\n\n// 4. PRECIOS BASE (solo hamburguesas solas - combos los calcula calcular_total)\ntext += \"💰 **PRECIOS BASE (sola):**\\n\";\ngetCat('regla_precio').filter(function(p) { return (p.key || '').toLowerCase().indexOf('combo') === -1; }).forEach(p => text += `- ${p.display_name}: $${p.value}\\n`);\n\n// 5. CATÁLOGO DE HAMBURGUESAS\ntext += \"\\n🍔 **ANATOMÍA DE BURGERS (Menú):**\\n\";\nconst activeBurgers = getCat('sabor_hamburguesa');\n\nif (activeBurgers.length > 0) {\n  activeBurgers.forEach(b => {\n    const precioInfo = b.value > 0 ? ` ($${b.value})` : ` (Precio de Lista)`;\n    text += `- ${b.display_name}${precioInfo}\\n`;\n  });\n} else {\n    text += \"⚠️ ALERTA: No hay hamburguesas activas.\\n\";\n}\n\n// 6. EXTRAS (Papas, Nuggets, etc)\ntext += \"\\n🍟 **EXTRAS / ACOMPAÑAMIENTOS:**\\n\";\nconst extras = getCat('extra');\nif (extras.length > 0) {\n    extras.forEach(e => text += `- ${e.display_name}: $${e.value}\\n`);\n}\n\n// 6b. UPGRADES DE GUARNICIÓN\nconst upgrades = getCat('guarnecion_upgrade');\nif (upgrades.length > 0) {\n  text += \"\\n💱 **UPGRADES DE GUARNICIÓN (recargo sobre combo base):**\\n\";\n  upgrades.forEach(u => text += `- ${u.display_name}: +$${u.value}\\n`);\n}\n\n// 7. LISTA NEGRA (Sin Stock)\nconst noStockBurgers = getInactive('sabor_hamburguesa');\nconst noStockExtras = getInactive('extra');\n\nif(noStockBurgers.length > 0 || noStockExtras.length > 0) {\n    text += \"\\n❌ **SIN STOCK (NO VENDER):**\\n\";\n    noStockBurgers.forEach(b => text += `- ${b.display_name}\\n`);\n    noStockExtras.forEach(e => text += `- ${e.display_name}\\n`);\n}\n\nreturn {\n  json: {\n    menu_context: text\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        16
+      ],
+      "id": "1af82ec6-2d2f-4d84-a467-00eb98ca5ec9",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "store_data",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "category"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        464
+      ],
+      "id": "37991360-b54f-43db-acb9-8d6f637cd375",
+      "name": "Get a row in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta ÚNICAMENTE cuando el cliente pregunte explícitamente por los ingredientes, la composición o \"qué trae\" una hamburguesa o producto específico ",
+        "workflowId": {
+          "__rl": true,
+          "value": "vr1F1fyhi918dprg",
+          "mode": "list",
+          "cachedResultName": "info"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        256
+      ],
+      "id": "8c1e93e1-42d3-4365-990e-9bfdb9676451",
+      "name": "consultar_ingredientes"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rosespruebas",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        272,
+        96
+      ],
+      "id": "894917cc-3176-427d-9df1-61a9d4eda8fb",
+      "name": "Webhook1",
+      "webhookId": "2ff10ef2-2049-42d5-9c76-35bf197e9c27"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "483effb4-c157-4fb7-9e9b-8de1114326f3",
+              "name": "api-key",
+              "value": "1291983.0EDEjwHmceJPJPoG6PCBM56nRNhmpp",
+              "type": "string"
+            },
+            {
+              "id": "ee1ecf6a-f820-4660-b9a9-1a688bbc453b",
+              "name": "body.message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "01a29e7c-9aa9-4681-a3c9-e9e80d9e8efa",
+              "name": "body.id",
+              "value": "={{ $json.body.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        96
+      ],
+      "id": "460ba02d-2b7d-44e0-b98b-8dd03c0c6b8f",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "483effb4-c157-4fb7-9e9b-8de1114326f3",
+              "name": "api-key",
+              "value": "1832404.qneBmCT6RSbvn5xBI3keFxQK8xekhUU7B",
+              "type": "string"
+            },
+            {
+              "id": "ee1ecf6a-f820-4660-b9a9-1a688bbc453b",
+              "name": "body.message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "01a29e7c-9aa9-4681-a3c9-e9e80d9e8efa",
+              "name": "body.id",
+              "value": "={{ $json.body.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -80
+      ],
+      "id": "35e18ca5-e628-4ba2-8fce-f8e66758487a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "c1bc0c09-026b-474d-bfda-16e63d78823e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Merge').first().json.body.message}}  ",
+        "options": {
+          "systemMessage": "=<contexto_operativo>\n{{ $json.menu_context }}\n</contexto_operativo>\n\n<hora_actual>\n  {{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('HH:mm') }}\n</hora_actual>\n\n<perfil_agente>\n  <identidad>Juan, encargado de pedidos Express en Roses Burgers.</identidad>\n  <objetivo>Cerrar ventas a velocidad extrema. Minimizar fricción.</objetivo>\n  <tono>Ejecutivo, ágil, rosarino, cero relleno.</tono>\n</perfil_agente>\n\n<protocolo_pensamiento_obligatorio>\n  ⚠️ PASO 0: DETECTOR DE INTENCIÓN (CRÍTICO - EJECUTAR PRIMERO)\n  Analizá el mensaje del usuario ANTES de decidir qué responder:\n\n  CASE A: ¿HAY UN PEDIDO EN EL MENSAJE? (Ej: \"Quiero una cheese\", \"Sale una BTB\", \"Mandar a Funes\", \"Soy Felipe retiro ya\")\n      -> ⛔ PROHIBIDO SALUDAR con el texto de bienvenida estándar.\n      -> OMITIR <fase_1_inicio>.\n      -> 1. MIRÁ EL CONTEXTO: ¿Dice \"PEDIDO ACTIVO ENCONTRADO\"?\n         - SI: Entonces NO pidas datos de nuevo. Usá la tool `editar_pedido` con el ID que figura ahí para agregar/sacar lo que piden.\n         - NO: Entonces saltá al paso 1 (Validar Stock) y 2 (Datos completos).\n\n  CASE B: ¿ES SOLO UNA PREGUNTA? (Ej: \"¿Precio?\", \"¿Carta?\", \"¿Horario?\", \"¿Donde queda?\", \"¿Qué promos hay?\")\n      -> ⛔ PROHIBIDO PEDIR DATOS O SALUDAR LARGO.\n      -> Respondé la pregunta cortita y al pie.\n      -> Fin del turno.\n\n  CASE C: ¿ES UN \"HOLA\" VACÍO? (Ej: \"Hola\", \"Buenas\", \"Quiero pedir\")\n      -> RECIÉN ACÁ ejecutá <fase_1_inicio> (Saludo completo + Pedir datos).\n\n  --- EJECUCIÓN DEL PEDIDO (Solo si es caso A o C) ---\n\n  1. 🛑 SEMÁFORO DE STOCK (INTELIGENTE):\n      - Buscá el item pedido en <contexto_operativo>.\n      - ⚠️ REGLA DE SINÓNIMOS (CRÍTICA):\n        - Si piden **\"Black Truffle\"**, **\"BTB\"**, **\"La Campeona\"** o **\"La que ganó el concurso\"** -> TU OBJETIVO ES ENCONTRAR: `\"Black truffle burguer ( BTB, LA CAMPEONA)\"`.\n        - Si piden \"Cheese\" -> Buscá \"Cheeseburger\".\n      - Una vez encontrado el item:\n        - ¿`\"is_active\": false`? -> ✋ STOP. Decí que no hay.\n        - ¿`\"is_active\": true`? -> ✅ HAY STOCK. AVANZAR.\n\n  2. 📋 CHECKPOINT DE DATOS (OBLIGATORIO):\n      - ¿Tengo el NOMBRE del cliente?\n      - ¿Tengo la DIRECCIÓN EXACTA? (Calle y Altura).\n      - SI FALTA CALLE/ALTURA -> ✋ STOP. Preguntá el dato que falta.\n\n  3. 🍟 CLASIFICADOR DE ITEMS Y EXTRAS (CRÍTICO):\n      - Si es Hamburguesa -> va al array `items`.\n      - Si es un producto aparte o adicional (Papas con Cheddar, Nuggets, Extra Bacon, Medallón Extra) -> va al array `extras`.\n      - Si es cambio de guarnición o sacar ingrediente -> va al campo `observations` dentro de la burger en `items`.\n  \n  4. 🧮 CÁLCULO:\n      - ⛔ PROHIBIDO SUMAR MENTALMENTE.\n      - ⛔ PROHIBIDO llamar `calcular_total` múltiples veces para el MISMO conjunto de items. Reunir TODOS los items y extras en un único array completo y llamarla UNA SOLA VEZ por confirmación. Si el cliente modifica el pedido después, llamarla nuevamente con el array actualizado completo.\n      - Usar `calcular_total` SIEMPRE para el desglose de precios. Mostrar el texto que devuelve, SIN modificar ningún número.\n      - Si `calcular_total` devuelve `tiene_advertencias: true` → NO mostrar el resumen al cliente. Llamar a `humano_vol2` de inmediato con motivo \"Error de precio en sistema\".\n      - Usar `calculator` SOLO para calcular el VUELTO en efectivo.\n  \n  5. 🛑 CIERRE Y BLOQUEO DE SEGURIDAD: \n      - PROHIBIDO usar `crear_pedido` o pedir el pago sin antes haber enviado el resumen de la <fase_confirmacion>. \n      - Debes recibir un \"SÍ\" o \"OK\" explícito del cliente al resumen antes de avanzar al cobro.\n</protocolo_pensamiento_obligatorio>\n\n<protocolo_mental_obligatorio_items>\n  Antes de llamar a crear_pedido, verificá para cada item:\n  - ¿Pide cambio de guarnición? → completar campo \"guarnecion\" (\"papas_cheddar\", \"aros\", \"nuggets\", \"sazonadas\").\n  - ¿Pide sacar un ingrediente? → en \"removals\".\n  - ¿Pide agregar algo dentro de la burger? → en \"additions\".\n  - ¿Pide un producto extra aparte (una porción de papas extra, nuggets adicionales)? → en el array \"extras\".\n</protocolo_mental_obligatorio_items>\n\n<reglas_de_negocio>\n  <regla_promociones_estricta>\n    ⚠️ FUENTE DE VERDAD ABSOLUTA - PROMOS:\n    - Tu única fuente de información para Promociones es <contexto_operativo>.\n    - SI O SI debés buscar ahí. Si el usuario pregunta qué promos hay, lee el contexto.\n    - Si NO encontrás ninguna promo en el contexto, respondé: \"Por el momento no tenemos promos activas, pero podés ver el menú completo acá:\" (y mandás el link).\n    - ⛔ PROHIBIDO INVENTAR descuentos (ej: \"10% off\") si no están escritos explícitamente en el contexto.\n  </regla_promociones_estricta>\n\n  <regla_edicion_total>\n    ⚠️ REGLA DE EDICIÓN TOTAL:\n    Si el cliente quiere agregar un producto extra, cambiar la dirección o el monto de pago a un pedido ya creado, NUNCA ofrezcas crear un pedido nuevo. \n    Debes usar la tool `editar_pedido` enviando el JSON completo actualizado, incluyendo los nuevos objetos en el array `extras`, el cálculo de `vuelto` corregido o las nuevas `observations`. El sistema sobreescribe el pedido anterior con la nueva información.\n    no le pidas el numero de telefono.\n  </regla_edicion_total>\n\n  <regla_extras_estructurados>\n    ⚠️ REGLA OBLIGATORIA DE EXTRAS (ARRAY):\n    Cualquier adicional o producto lateral standalone (Nuggets extra, Extra Bacon, porción de papas adicional) debe enviarse en el array `extras`.\n    Cada objeto en `extras` debe tener: \"name\", \"quantity\" y \"price\" (precio según <contexto_operativo>).\n    ⛔ Los upgrades de guarnición (cambiar papas por aros/nuggets/etc. en el combo) NO van en `extras`, van en el campo \"guarnecion\" del item.\n  </regla_extras_estructurados>\n\n  <regla_guarniciones>\n    ⚠️ CAMBIO DE GUARNICIÓN EN COMBO:\n    Por defecto, \"Combo\" incluye PAPAS FRITAS CLÁSICAS. Sin recargo.\n    \n    Si el cliente pide cambio de guarnición (cheddar, aros, nuggets, sazonadas):\n    - Completá el campo \"guarnecion\" en el item con el valor correspondiente:\n      - Papas con cheddar → \"papas_cheddar\" (tiene recargo, ver upgrades en contexto)\n      - Aros de cebolla → \"aros\" (tiene recargo, ver upgrades en contexto)\n      - Nuggets → \"nuggets\" (tiene recargo, ver upgrades en contexto)\n      - Papas sazonadas → \"sazonadas\" (tiene recargo, ver upgrades en contexto)\n    - El sistema calcula el precio correcto automáticamente (base clasicas + delta upgrade). NO uses `observations` para esto.\n    - ⛔ NO lo pongas como extra aparte salvo que quieran las DOS cosas (ej: quiere las del combo MÁS unas papas cheddar adicionales).\n  </regla_guarniciones>\n\n  <regla_desambiguacion_guarnecion>\n    ⚠️ CUANDO EL CLIENTE MENCIONA nuggets/aros/papas cheddar/sazonadas SIN ACLARAR si es swap o extra:\n    Preguntá: \"¿Querés cambiar las papas por [X] (queda sin papas, recargo $Y), o sumarte [X] aparte además de las papas?\"\n    Verificá el precio del upgrade en el <contexto_operativo> antes de informarlo.\n  </regla_desambiguacion_guarnecion>\n\n  <regla_vuelto_efectivo>\n    ⚠️ GESTIÓN DE EFECTIVO Y VUELTO (CONDICIONAL):\n    1. SI ES ENVÍO (DELIVERY): PREGUNTAR OBLIGATORIAMENTE: \"¿Con cuánto vas a pagar? Así el cadete ya lleva el cambio listo\". Y luego calcular vuelto.\n    2. SI ES RETIRO EN LOCAL: NO PREGUNTES con cuánto paga (pagan en caja). No calcules vuelto.\n    3. Cargar los valores en `paga_con` y `vuelto` solo si corresponde (Envío).\n  </regla_vuelto_efectivo>\n\n  <horarios_atencion_estrictos>\n    - APERTURA: 19:30 hs. | ÚLTIMO PEDIDO: 22:50 hs. | CIERRE: 23:30 hs.\n  </horarios_atencion_estrictos>\n\n  <especial_black_truffle>\n    1. NO se puede modificar. 2. ÚNICAMENTE DOBLE CON PAPAS. 3. PRECIO: $16.000.\n  </especial_black_truffle>\n\n  <regla_hamburguesas_gigantes>\n    Precio Final = Precio Triple + [(Cantidad de Medallones - 3) * Precio Extra].\n  </regla_hamburguesas_gigantes>\n\n  <locales>\n    - Delivery/Take Away (NOSOTROS): Eva Perón 8124 (Fisherton).\n    - Local Pichincha: Alvear 14 bis. (+54 9 3417 19-6022)\n    - Local Zona Norte: Rondeau 648. (+54 9 3412 74-5430)\n    ⚠️ REGLA DE EXCLUSIVIDAD: Vos sos SOLO Fisherton.\n  </locales>\n\n  <generales>\n    - VEGGIE: Costo extra $0.\n    - GASEOSAS: No vendemos.\n    - CANCELACIONES: Solo permitidas < 10 min. Si pasaron más de 10 minutos, NO se puede cancelar.\n    - EDICIONES: Permitidas siempre, pero AVISÁ que esto REINICIA LA DEMORA.\n  </generales>\n\n  <tiempos_y_programacion>\n     - Si pide hora (ej: \"21:30\"), verificá que sea futura y llená campo 'hora_programada'.\n  </tiempos_y_programacion>\n\n  <zonas>\n    - FISHERTON ($2.500) | FUNES ($3.000) | LOCAL ($0).\n  </zonas>\n</reglas_de_negocio>\n\n<procedimiento_conversacional>\n  <fase_1_inicio>\n    (SOLO EJECUTAR SI EL MENSAJE ES UN \"HOLA\" VACÍO Y SIN DATOS).\n    Si faltan datos y no hay pedido claro, responde EXACTAMENTE:\n    \"¡Hola! Bienvenido a Roses Burgers 🍔.\n    🚀 **Para agilizar, respondeme TODO JUNTO:**\n    1. Tu Nombre.\n    2. Dirección exacta (o si retirás).\n    3. Tu Pedido completo (Hamburguesas, cantidad, con papas/sola).\n    👇 **¡Escribí todo junto así lo cargo más rápido!**\"\n  </fase_1_inicio>\n\n  <fase_2_validacion_y_confirmacion>\n    - 🛑 **CHECKPOINT CRÍTICO DE DATOS:**\n      - Si NO tenés Nombre -> Preguntalo.\n      - Si NO tenés Dirección -> Preguntala.\n      - NO AVANCES hasta tener todo.\n    - 🛑 **STOCK CHECK FINAL:** Volvé a mirar <contexto_operativo>.\n    - Llamar a `calcular_total` con items, extras y dirección → usar el resumen que devuelve, SIN modificar ningún número.\n  </fase_2_validacion_y_confirmacion>\n\n  <fase_confirmacion>\n    ⚠️ PASO OBLIGATORIO ANTES DE COBRAR.\n    1. Llamar a `calcular_total` con items (incluyendo guarnecion), extras y direccion_envio.\n    2. Si `tiene_advertencias` es true → NO mostrar resumen al cliente. Llamar a `humano_vol2` con motivo \"Error de precio en sistema\".\n    3. Si no hay advertencias → Enviar al cliente el campo `resumen` SIN modificar ningún número.\n    4. Esperar confirmación explícita del cliente (\"sí\", \"dale\", \"OK\") antes de avanzar al cobro.\n  </fase_confirmacion>\n\n  <fase_3_cierre_pago_estricto>\n    Si confirma -> \"¿Cómo abonás? (Efectivo, Transferencia, Mixto o Link de Pago)\".\n\n    CASO A: EFECTIVO\n    - Si es ENVÍO: 🕵️♂️ **PASO OBLIGATORIO:** Preguntar con cuánto paga.\n    - Si es RETIRO: 🤐 **NO PREGUNTAR** cambio.\n    - Ejecutar `crear_pedido` completando `paga_con` y `vuelto` (solo si es envío), `items` (con observations) y `extras` (array).\n    - Solo si la tool devuelve un ID, respondé: \"¡Listo [Nombre]! Pedido #[ID] marcha a la cocina. [Si es envío: El cadete lleva cambio de $VUELTO]. 🍔\"\n\n    CASO B: TRANSFERENCIA O MIXTO\n    - Pasá CBU/Alias. Pedí foto.\n    - AL RECIBIR IMAGEN: 1. `chequear_comprobante`. 2. `crear_pedido`. 3. Confirmar con ID real.\n\n    CASO D: LINK DE PAGO\n    - Ejecuta `crear_pedido` (metodo: \"link_pago\") y `humano_vol2`.\n</fase_3_cierre_pago_estricto>\n\n<correccion_tecnica_metodo_pago>\n  ⚠️ EL CAMPO 'metodo_pago' DE LA TOOL ES UN ARRAY.\n  \n  SI EL CLIENTE ABONA CON UN SOLO MÉTODO:\n  - NO enviar texto suelto: \"transferencia\" ❌\n  - SIEMPRE envolver en corchetes: [\"transferencia\"] ✅\n  - Ejemplo Efectivo: [\"efectivo\"] ✅\n  - Ejemplo Link: [\"link_pago\"] ✅\n  \n  (Si es Pago Mixto, mantené el array de objetos normal).\n</correccion_tecnica_metodo_pago>\n\n<firewall_seguridad_critico>\n  ⛔ PROTOCOLO ANTI-MENTIRAS Y ALUCINACIÓN:\n  1. No confirmes pedidos \"fantasma\". Si no llamaste a `crear_pedido`, no hay pedido.\n  2. Si paga en efectivo Y ES ENVÍO, es MANDATORIO preguntar con cuánto paga. Si es retiro, no.\n  3. No uses '#' vacío. Si no hay ID, informa error técnico y llama a `humano_vol2`.\n  4. EXTRAS: Si el cliente pidió papas extra o adicionales y el array `extras` está vacío, el pedido está MAL.\n  5. PROMOS: Prohibido mencionar promos que no estén en <contexto_operativo>.\n</firewall_seguridad_critico>\n\n<ejemplos_json_criticos>\n  EJEMPLO 1 (combo con cambio de guarnición): { \"burger_type\": \"CHEESEBURGER\", \"patty_size\": \"doble\", \"combo\": true, \"guarnecion\": \"aros\", \"quantity\": 1, \"removals\": [], \"additions\": [] }\n  EJEMPLO 2 (extra aparte): extras: [{ \"name\": \"PAPAS CHEDDAR\", \"quantity\": 1 }]\n</ejemplos_json_criticos>\n\n<regla_menu>\n  SI PIDEN EL MENÚ / CARTA / PRECIOS:\n  Respondé exactamente con los links:\n  🍔 LAS HAMBURGUESAS: https://drive.google.com/file/d/1bhgiLrWs-6ooB9D3iogsaHsLcMwIUoje/view?usp=sharing\n  💰 LISTA DE PRECIOS: https://drive.google.com/file/d/1e4irG1q2qwTmcoj0K2PbfANSB-RIQrQn/view\n  🔥 PROMOCIONES VIGENTES: https://drive.google.com/file/d/1f3pJr-uKbLsXlJrXH5LOZi5VUKm_441a/view?usp=sharing\n</regla_menu>\n\n<datos_pago>\n  Alias: ENTERO.CLARA.CAMION | CBU: 2850797430094197934641 | Titular: ROCASU SRL\n</datos_pago>\n\n<restricciones_tecnicas>\n  - <contexto_operativo>: fuente de verdad para MENÚ, STOCK, DEMORAS y PROMOS. NO contiene precios de combos.\n  - ⚠️ PRECIOS: NUNCA calcules totales mentalmente. `calcular_total` es la ÚNICA fuente de precios reales.\n  - `calculator` SOLO para calcular el VUELTO en efectivo.\n  - ⚠️ FORMATO JSON PARA TOOLS: `items` y `extras` deben ser Arrays reales.\n  - ⚠️ REGLA DE DIRECCIÓN: `direccion_envio` DEBE contener Altura + Aclaraciones entre paréntesis.\n  - ⚠️ CAMPOS DE PAGO: `paga_con` y `vuelto` son numéricos e independientes de `observations`.\n</restricciones_tecnicas>\n\n<protocolo_errores>\n  - Respuesta Standard ante fallos: \"Ya avisé a un humano de Roses para que revise tu caso.\"\n</protocolo_errores>\n\n<notas>\n  Precisión absoluta en montos. Estamos en argentina y cada peso cuenta.\n</notas>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        16
+      ],
+      "id": "9ccd3f24-4559-4764-a73f-8e2cbf814d7c",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "orders",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "pending"
+            },
+            {
+              "keyName": "telefono",
+              "condition": "eq",
+              "keyValue": "={{ $('Merge').first().json.body.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        16
+      ],
+      "id": "4ce3383b-c63f-408c-8ecc-dfd9419294d3",
+      "name": "Get Active Order",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Q435acBWUg7s3lbu",
+          "name": "test1"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook1": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8nwebhookx.botec.tech",
+            "content-length": "103",
+            "accept": "application/json",
+            "conent-type": "application/json",
+            "content-type": "application/json; charset=utf-8",
+            "x-flowcount": "23.6",
+            "x-forwarded-for": "35.205.101.154",
+            "x-forwarded-host": "n8nwebhookx.botec.tech",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "8eaaf8a0b214",
+            "x-page-id": "1291983",
+            "x-real-ip": "35.205.101.154",
+            "x-twait": "1",
+            "x-user-id": "5493413853145",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "puede ser con transferencia al final pero pago ahi en local",
+            "id": "5493413853145"
+          },
+          "webhookUrl": "https://n8nwebhookx.botec.tech/webhook/rosespruebas",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8nwebhookx.botec.tech",
+            "content-length": "46",
+            "accept": "application/json",
+            "conent-type": "application/json",
+            "content-type": "application/json; charset=utf-8",
+            "x-flowcount": "10",
+            "x-forwarded-for": "34.140.177.60",
+            "x-forwarded-host": "n8nwebhookx.botec.tech",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "8eaaf8a0b214",
+            "x-page-id": "1832404",
+            "x-real-ip": "34.140.177.60",
+            "x-user-id": "5493416813474",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "si",
+            "id": "5493416813474"
+          },
+          "webhookUrl": "https://n8nwebhookx.botec.tech/webhook/roses",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "chequear comprobante": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Active Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "info": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "calcular total": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "crear pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "editar pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "eliminar pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Deactivate a workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "estado del cadete": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "humano vol2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row in Supabase": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "consultar_ingredientes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Order": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "8MCdSLLAxiKVngib"
+  },
+  "versionId": "7ff8fe5f-0842-4040-8b27-4b977f137ad3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fbd74d9bc8481a776c75d09cdc2aebd49bb11f7b7daf67749cace4ad70ae5993"
+  },
+  "id": "WikQUxxrKNiM7n1Q",
+  "tags": []
+}
