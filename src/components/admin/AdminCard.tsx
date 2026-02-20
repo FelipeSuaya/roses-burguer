@@ -27,25 +27,24 @@ interface AdminCardProps {
 function formatMetadata(item: StoreDataItem): string | null {
   const meta = item.metadata as Record<string, unknown> | null;
   if (!meta) return null;
-  
-  // Para reglas de demora, mostrar día y horario
+
   if (meta.dia) {
     const dia = (meta.dia as string).charAt(0).toUpperCase() + (meta.dia as string).slice(1);
     const horaInicio = (meta.hora_inicio as string)?.slice(0, 5) || '';
     const horaFin = (meta.hora_fin as string)?.slice(0, 5) || '';
     const zona = (meta.zona as string) || '';
-    return `${zona} - ${dia} ${horaInicio}-${horaFin}`;
+    return `${zona} — ${dia} ${horaInicio}–${horaFin}`;
   }
-  
+
   return null;
 }
 
 function formatValidPayments(item: StoreDataItem): string | null {
   const meta = item.metadata as Record<string, unknown> | null;
   if (!meta) return null;
-  
+
   if (meta.condicion) return meta.condicion as string;
-  
+
   if (!meta.valid_payments) return null;
   const payments = meta.valid_payments as string[];
   if (payments.length === 0) return null;
@@ -61,13 +60,13 @@ export function AdminCard({ item, onToggleActive, onUpdateValue, onDelete }: Adm
   const [isToggling, setIsToggling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const hasChanges = localValue !== (item.value || '');
+
   const handleDelete = async () => {
     setIsDeleting(true);
     await onDelete(item.id);
     setIsDeleting(false);
   };
-
-  const hasChanges = localValue !== (item.value || '');
 
   const handleToggle = async (checked: boolean) => {
     setIsToggling(true);
@@ -79,67 +78,75 @@ export function AdminCard({ item, onToggleActive, onUpdateValue, onDelete }: Adm
     if (!hasChanges) return;
     setIsSaving(true);
     const success = await onUpdateValue(item.id, localValue);
-    if (!success) {
-      setLocalValue(item.value || '');
-    }
+    if (!success) setLocalValue(item.value || '');
     setIsSaving(false);
   };
 
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <div className="flex flex-col gap-3">
-          <CardTitle className="text-lg md:text-xl font-bold leading-tight">
-            {metadataInfo || item.display_name || item.key}
-          </CardTitle>
-          {metadataInfo && (
-            <p className="text-sm text-muted-foreground">
-              Demora: {item.value}
-            </p>
-          )}
-          {validPaymentsInfo && (
-            <p className="text-xs text-muted-foreground">
-              💳 Válido en: {validPaymentsInfo}
-            </p>
-          )}
-          <div className="flex items-center justify-end gap-2">
-            <span className={`text-sm font-medium ${item.is_active ? 'text-green-600' : 'text-muted-foreground'}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base font-semibold leading-tight truncate">
+              {metadataInfo || item.display_name || item.key}
+            </CardTitle>
+            {metadataInfo && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Demora: {item.value}
+              </p>
+            )}
+            {validPaymentsInfo && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Válido en: {validPaymentsInfo}
+              </p>
+            )}
+          </div>
+
+          {/* Status indicator — dot + label + switch */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              item.is_active
+                ? 'bg-[hsl(var(--status-active))]'
+                : 'bg-[hsl(var(--status-inactive))]'
+            }`} />
+            <span className="text-xs text-muted-foreground">
               {item.is_active ? 'Activo' : 'Pausado'}
             </span>
             <Switch
               checked={item.is_active ?? false}
               onCheckedChange={handleToggle}
               disabled={isToggling}
-              className="scale-125"
             />
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
         <div className="flex gap-2">
           <Input
             value={localValue}
             onChange={(e) => setLocalValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
             placeholder="Valor (precio, tiempo, etc.)"
-            className="text-base h-12"
+            className="text-sm h-9"
           />
           <Button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
-            size="lg"
-            className="h-12 px-4 shrink-0"
+            size="sm"
+            className="h-9 px-3 shrink-0"
           >
-            <Save className="h-5 w-5" />
-            <span className="hidden sm:inline ml-2">Guardar</span>
+            <Save className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1.5">Guardar</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                variant="destructive"
-                size="lg"
-                className="h-12 px-4 shrink-0"
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 shrink-0 border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors"
               >
-                <Trash2 className="h-5 w-5" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

@@ -1,193 +1,129 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDistance } from "date-fns";
-import { es } from "date-fns/locale";
-import { TrendingUp, DollarSign, ShoppingBag, Users } from "lucide-react";
-
-interface OrderItem {
-  quantity: number;
-  burger_type: string;
-  patty_size: string;
-  combo: boolean;
-  additions?: string[] | null;
-  removals?: string[] | null;
-}
-
-interface Order {
-  id: string;
-  nombre: string;
-  telefono?: string | null;
-  items?: OrderItem[];
-  monto: number;
-  fecha: string;
-  status: string;
-  created_at: string;
-}
+import { useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDistance } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { TrendingUp, DollarSign, ShoppingBag, Users } from 'lucide-react'
+import { useOrders } from '@/contexts/OrdersContext'
 
 interface ProductStats {
-  producto: string;
-  pattySize: string;
-  combo: boolean;
-  cantidad: number;
-  ingresos: number;
+  producto: string
+  pattySize: string
+  combo: boolean
+  cantidad: number
+  ingresos: number
 }
 
 interface CustomerStats {
-  cliente: string;
-  totalPedidos: number;
-  totalGastado: number;
+  cliente: string
+  totalPedidos: number
+  totalGastado: number
+}
+
+function AnimatedNumber({ value, prefix = '' }: { value: number; prefix?: string }) {
+  return (
+    <motion.div
+      key={value}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="text-2xl font-bold"
+    >
+      {prefix}{value.toLocaleString('es-AR')}
+    </motion.div>
+  )
 }
 
 const Analytics = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [productStats, setProductStats] = useState<ProductStats[]>([]);
-  const [customerStats, setCustomerStats] = useState<CustomerStats[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalOrders, setTotalOrders] = useState(0);
+  const { pendingOrders, completedOrders } = useOrders()
+  const allOrders = useMemo(() => [...pendingOrders, ...completedOrders], [pendingOrders, completedOrders])
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch all orders
-      const { data: ordersData, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const totalOrders = allOrders.length
+  const totalRevenue = useMemo(
+    () => allOrders.reduce((sum, o) => sum + Number(o.monto), 0),
+    [allOrders]
+  )
 
-      if (error) {
-        console.error('Error fetching orders:', error);
-        return;
-      }
-
-      const allOrders = (ordersData || []).map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined
-      }));
-      setOrders(allOrders);
-      setTotalOrders(allOrders.length);
-      setTotalRevenue(allOrders.reduce((sum, order) => sum + Number(order.monto), 0));
-
-      // Analyze products from items array - group by burger_type + patty_size + combo
-      const productMap = new Map<string, { cantidad: number; ingresos: number; producto: string; pattySize: string; combo: boolean }>();
-      
-      allOrders.forEach(order => {
-        if (order.items && Array.isArray(order.items)) {
-          order.items.forEach(item => {
-            // Skip items without burger_type
-            if (!item.burger_type) return;
-            
-            const burgerType = item.burger_type.trim();
-            const pattySize = item.patty_size || 'simple';
-            const isCombo = item.combo || false;
-            
-            // Create unique key combining all attributes
-            const key = `${burgerType}-${pattySize}-${isCombo}`;
-            
-            const current = productMap.get(key) || { 
-              cantidad: 0, 
-              ingresos: 0,
-              producto: burgerType,
-              pattySize: pattySize,
-              combo: isCombo
-            };
-            
-            const itemRevenue = Number(order.monto) / order.items.length;
-            
-            productMap.set(key, {
-              ...current,
-              cantidad: current.cantidad + (item.quantity || 1),
-              ingresos: current.ingresos + itemRevenue
-            });
-          });
+  const productStats = useMemo<ProductStats[]>(() => {
+    const productMap = new Map<string, ProductStats>()
+    allOrders.forEach(order => {
+      if (!order.items) return
+      order.items.forEach(item => {
+        if (!item.burger_type) return
+        const key = `${item.burger_type}-${item.patty_size || 'simple'}-${item.combo ?? false}`
+        const curr = productMap.get(key) || {
+          producto: item.burger_type.trim(),
+          pattySize: item.patty_size || 'simple',
+          combo: item.combo || false,
+          cantidad: 0,
+          ingresos: 0,
         }
-      });
+        const itemRevenue = Number(order.monto) / order.items!.length
+        productMap.set(key, {
+          ...curr,
+          cantidad: curr.cantidad + (item.quantity || 1),
+          ingresos: curr.ingresos + itemRevenue,
+        })
+      })
+    })
+    return Array.from(productMap.values()).sort((a, b) => b.cantidad - a.cantidad)
+  }, [allOrders])
 
-      const sortedProducts = Array.from(productMap.values())
-        .sort((a, b) => b.cantidad - a.cantidad);
-      
-      setProductStats(sortedProducts);
+  const customerStats = useMemo<CustomerStats[]>(() => {
+    const map = new Map<string, { totalPedidos: number; totalGastado: number }>()
+    allOrders.forEach(order => {
+      const key = order.telefono || 'Sin teléfono'
+      const curr = map.get(key) || { totalPedidos: 0, totalGastado: 0 }
+      map.set(key, {
+        totalPedidos: curr.totalPedidos + 1,
+        totalGastado: curr.totalGastado + Number(order.monto),
+      })
+    })
+    return Array.from(map.entries())
+      .map(([cliente, stats]) => ({ cliente, ...stats }))
+      .sort((a, b) => b.totalGastado - a.totalGastado)
+  }, [allOrders])
 
-      // Analyze customers - group by phone number
-      const customerMap = new Map<string, { totalPedidos: number; totalGastado: number }>();
-      
-      allOrders.forEach(order => {
-        // Use phone number as the key, fallback to "Sin teléfono" if not available
-        const clienteKey = order.telefono || "Sin teléfono";
-        
-        const current = customerMap.get(clienteKey) || { totalPedidos: 0, totalGastado: 0 };
-        customerMap.set(clienteKey, {
-          totalPedidos: current.totalPedidos + 1,
-          totalGastado: current.totalGastado + Number(order.monto)
-        });
-      });
+  const sortedOrders = useMemo(
+    () => [...allOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [allOrders]
+  )
 
-      const sortedCustomers = Array.from(customerMap.entries())
-        .map(([cliente, stats]) => ({ cliente, ...stats }))
-        .sort((a, b) => b.totalGastado - a.totalGastado);
-      
-      setCustomerStats(sortedCustomers);
-    };
-
-    fetchData();
-  }, []);
+  const statCards = [
+    { label: 'Total Pedidos', value: totalOrders, icon: ShoppingBag, prefix: '' },
+    { label: 'Ingresos Totales', value: Math.round(totalRevenue), icon: DollarSign, prefix: '$' },
+    { label: 'Clientes Únicos', value: customerStats.length, icon: Users, prefix: '' },
+    {
+      label: 'Promedio por Pedido',
+      value: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
+      icon: TrendingUp,
+      prefix: '$',
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            📊 Análisis de Ventas
-          </h1>
-          <p className="text-muted-foreground">
-            Estadísticas y análisis de todos los pedidos
-          </p>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+          <p className="text-muted-foreground text-sm mt-1">Estadísticas en tiempo real de todos los pedidos</p>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Pedidos</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clientes Únicos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{customerStats.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Promedio por Pedido</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : '0.00'}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map(({ label, value, icon: Icon, prefix }) => (
+            <Card key={label}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <AnimatedNumber value={value} prefix={prefix} />
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -201,24 +137,27 @@ const Analytics = () => {
                 {productStats.slice(0, 5).map((product, index) => (
                   <div key={`${product.producto}-${product.pattySize}-${product.combo}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
+                      <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center text-xs">
                         {index + 1}
                       </Badge>
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm">
                           {product.producto} - {product.pattySize}
                           {product.combo && ' 🍟'}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          ${product.ingresos.toFixed(2)} en ingresos
+                        <p className="text-xs text-muted-foreground">
+                          ${Math.round(product.ingresos).toLocaleString('es-AR')} en ingresos
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="text-xs">
                       {product.cantidad} vendidos
                     </Badge>
                   </div>
                 ))}
+                {productStats.length === 0 && (
+                  <p className="text-muted-foreground text-sm text-center py-4">Sin datos</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -233,27 +172,28 @@ const Analytics = () => {
                 {customerStats.slice(0, 5).map((customer, index) => (
                   <div key={customer.cliente} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center">
+                      <Badge variant="secondary" className="w-8 h-8 rounded-full flex items-center justify-center text-xs">
                         {index + 1}
                       </Badge>
                       <div>
-                        <p className="font-medium">{customer.cliente}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {customer.totalPedidos} pedidos
-                        </p>
+                        <p className="font-medium text-sm">{customer.cliente}</p>
+                        <p className="text-xs text-muted-foreground">{customer.totalPedidos} pedidos</p>
                       </div>
                     </div>
-                    <Badge variant="outline">
-                      ${customer.totalGastado.toFixed(2)}
+                    <Badge variant="outline" className="text-xs">
+                      ${Math.round(customer.totalGastado).toLocaleString('es-AR')}
                     </Badge>
                   </div>
                 ))}
+                {customerStats.length === 0 && (
+                  <p className="text-muted-foreground text-sm text-center py-4">Sin datos</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Orders Table */}
+        {/* Orders Table */}
         <Card>
           <CardHeader>
             <CardTitle>Historial de Pedidos</CardTitle>
@@ -262,6 +202,7 @@ const Analytics = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>#</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Total</TableHead>
@@ -270,40 +211,43 @@ const Analytics = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.slice(0, 20).map((order) => (
+                {sortedOrders.slice(0, 30).map(order => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.nombre}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{order.order_number}</TableCell>
+                    <TableCell className="font-medium text-sm">{order.nombre}</TableCell>
                     <TableCell className="max-w-xs">
                       {order.items?.map((item, idx) => (
-                        <div key={idx} className="text-sm">
+                        <div key={idx} className="text-xs text-muted-foreground">
                           {item.quantity}x {item.burger_type} {item.patty_size}
                           {item.combo && ' (combo)'}
                         </div>
                       ))}
                     </TableCell>
-                    <TableCell>${order.monto}</TableCell>
+                    <TableCell className="text-sm">${Number(order.monto).toLocaleString('es-AR')}</TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={order.status === 'completed' ? 'default' : 'secondary'}
-                      >
+                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
                         {order.status === 'completed' ? 'Completado' : 'Pendiente'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDistance(new Date(order.created_at), new Date(), { 
-                        addSuffix: true, 
-                        locale: es 
-                      })}
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistance(new Date(order.created_at), new Date(), { addSuffix: true, locale: es })}
                     </TableCell>
                   </TableRow>
                 ))}
+                {sortedOrders.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      Sin pedidos
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Analytics;
+export default Analytics

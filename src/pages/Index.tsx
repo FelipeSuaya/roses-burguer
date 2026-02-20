@@ -1,965 +1,214 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { formatDistance } from "date-fns";
-import { es } from "date-fns/locale";
-import { Check, Clock, DollarSign, ChefHat, Printer, Plus } from "lucide-react";
-import { formatPaymentMethod } from "@/lib/formatPaymentMethod";
-import { ManualOrderDialog } from "@/components/ManualOrderDialog";
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Clock, Check, Plus, Printer, ChefHat } from 'lucide-react'
+import { useOrders } from '@/contexts/OrdersContext'
+import { OrderCard } from '@/components/orders/OrderCard'
+import { ManualOrderDialog } from '@/components/ManualOrderDialog'
+import type { Order } from '@/contexts/OrdersContext'
 
-interface OrderItem {
-  quantity: number;
-  burger_type: string;
-  patty_size: string;
-  combo: boolean;
-  additions?: string[] | null;
-  removals?: string[] | null;
-  observations?: string | null;
+// ─── Column selector ───────────────────────────────────────────────────────────
+
+type Columns = 1 | 2 | 3
+
+const GRID: Record<Columns, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 md:grid-cols-2',
+  3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
 }
 
-interface ExtraItem {
-  name: string;
-  quantity: number;
-  price?: number;
+const COL_LABELS: Record<Columns, string> = { 1: '1', 2: '2', 3: '3' }
+
+function ColumnSelector({ value, onChange }: { value: Columns; onChange: (v: Columns) => void }) {
+  return (
+    <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+      {([1, 2, 3] as Columns[]).map(n => (
+        <button
+          key={n}
+          onClick={() => onChange(n)}
+          className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+            value === n
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {COL_LABELS[n]}
+        </button>
+      ))}
+    </div>
+  )
 }
 
-interface ItemStatus {
-  burger_type: string;
-  quantity: number;
-  patty_size: string;
-  combo: boolean;
-  completed: boolean;
+// ─── Print helper ───────────────────────────────────────────────────────────────
+
+function printPendingOrders(pendingOrders: Order[]) {
+  const getAge = (createdAt: string) => {
+    const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000)
+    return { text: mins < 1 ? 'Recién llegado' : `${mins} min`, urgent: mins >= 15 }
+  }
+
+  const content = `<!DOCTYPE html><html><head><title>Ticket Pedidos</title>
+  <style>
+    body{font-family:'Courier New',monospace;margin:0;padding:10px;font-size:12px;line-height:1.2;width:80mm}
+    .header{text-align:center;margin-bottom:15px;border-bottom:1px dashed #000;padding-bottom:8px}
+    .company-name{font-weight:bold;font-size:14px}
+    .order{margin-bottom:15px;border-bottom:1px dashed #000;padding-bottom:10px}
+    .order-header{font-weight:bold;margin-bottom:5px;text-transform:uppercase}
+    .item{margin:2px 0}
+    .urgent{background:#ffe6e6;border:1px solid #ff9999}
+    @media print{body{margin:0;width:80mm}.order{break-inside:avoid}}
+  </style></head><body>
+  <div class="header">
+    <div class="company-name">ROSES BURGERS</div>
+    <div>TICKET COMANDA</div>
+    <div>${new Date().toLocaleDateString('es-AR')} ${new Date().toLocaleTimeString('es-AR')}</div>
+    <div>PEDIDOS PENDIENTES: ${pendingOrders.length}</div>
+  </div>
+  ${pendingOrders.map(order => {
+    const age = getAge(order.created_at)
+    const items = (order.item_status || order.items || []) as Record<string, unknown>[]
+    return `<div class="order ${age.urgent ? 'urgent' : ''}">
+      <div class="order-header">PEDIDO #${order.order_number} - ${order.nombre}</div>
+      <div>Tiempo: ${age.text}${age.urgent ? ' ⚠️ URGENTE' : ''}</div>
+      ${items.map(item => `<div class="item">☐ ${item.quantity}x ${item.burger_type} ${item.patty_size}${item.combo ? ' combo' : ''}</div>`).join('')}
+      <div><strong>ENTREGA:</strong> ${order.direccion_envio || 'RETIRO EN LOCAL'}</div>
+      <div><strong>TOTAL: $${order.monto}</strong></div>
+    </div>`
+  }).join('')}
+  </body></html>`
+
+  const w = window.open('', '_blank')
+  if (w) { w.document.write(content); w.document.close(); w.focus(); w.print(); w.close() }
 }
 
-interface Order {
-  id: string;
-  nombre: string;
-  monto: number;
-  fecha: string;
-  status: string;
-  created_at: string;
-  items?: OrderItem[];
-  item_status?: ItemStatus[];
-  direccion_envio?: string;
-  order_number: number;
-  metodo_pago?: string;
-  cadete_salio?: boolean;
-  hora_programada?: string;
-  paga_con?: number | null;
-  vuelto?: number | null;
-  extras?: ExtraItem[] | null;
-}
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 const Index = () => {
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
-  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
-  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const { pendingOrders, completedOrders, loading } = useOrders()
+  const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false)
+  const [columns, setColumns] = useState<Columns>(() => {
+    const saved = localStorage.getItem('dashboard-columns')
+    return (saved ? parseInt(saved) : 2) as Columns
+  })
 
-  useEffect(() => {
-    // Fetch initial orders
-    const fetchOrders = async () => {
-      const { data: pending, error: pendingError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      const { data: completed, error: completedError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false });
-
-      if (pendingError) console.error('Error fetching pending orders:', pendingError);
-      else {
-        const typedPending = (pending || []).map(order => ({
-          ...order,
-          items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined,
-          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined,
-          extras: Array.isArray(order.extras) ? order.extras as unknown as ExtraItem[] : null
-        }));
-        setPendingOrders(typedPending);
-      }
-
-      if (completedError) console.error('Error fetching completed orders:', completedError);
-      else {
-        const typedCompleted = (completed || []).map(order => ({
-          ...order,
-          items: Array.isArray(order.items) ? order.items as unknown as OrderItem[] : undefined,
-          item_status: Array.isArray(order.item_status) ? order.item_status as unknown as ItemStatus[] : undefined,
-          extras: Array.isArray(order.extras) ? order.extras as unknown as ExtraItem[] : null
-        }));
-        setCompletedOrders(typedCompleted);
-      }
-    };
-
-    fetchOrders();
-
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('orders-dashboard')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('Order INSERT:', payload);
-          const newOrder = payload.new as Order;
-          if (newOrder.status === 'pending') {
-            setPendingOrders(prev => [newOrder, ...prev]);
-
-            toast({
-              title: "¡Nuevo Pedido!",
-              description: `${newOrder.nombre} - $${newOrder.monto}`,
-              duration: 5000,
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('Order UPDATE:', payload);
-          const raw = payload.new as any;
-          const oldRaw = payload.old as any;
-
-          const updatedOrder: Order = {
-            ...raw,
-            items: Array.isArray(raw.items) ? (raw.items as OrderItem[]) : undefined,
-            item_status: Array.isArray(raw.item_status) ? (raw.item_status as ItemStatus[]) : undefined,
-          };
-
-          const oldOrder: Order = {
-            ...oldRaw,
-            items: Array.isArray(oldRaw.items) ? (oldRaw.items as OrderItem[]) : undefined,
-            item_status: Array.isArray(oldRaw.item_status) ? (oldRaw.item_status as ItemStatus[]) : undefined,
-          };
-
-          if (updatedOrder.status === 'completed') {
-            setPendingOrders(prev => prev.filter(order => order.id !== updatedOrder.id));
-            setCompletedOrders(prev => [updatedOrder, ...prev]);
-          } else {
-            // Mezclar los cambios con el pedido existente para no perder campos no enviados en el payload
-            setPendingOrders(prev =>
-              prev.map(order =>
-                order.id === updatedOrder.id
-                  ? { ...order, ...updatedOrder }
-                  : order
-              )
-            );
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          console.log('Order DELETE:', payload);
-          const deletedOrder = payload.old as Order;
-
-          setPendingOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
-          setCompletedOrders(prev => prev.filter(order => order.id !== deletedOrder.id));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
-
-  const toggleItemCompleted = async (orderId: string, itemIndex: number) => {
-    const order = pendingOrders.find(o => o.id === orderId);
-    if (!order || !order.item_status) return;
-
-    const updatedItemStatus = [...order.item_status];
-    updatedItemStatus[itemIndex] = {
-      ...updatedItemStatus[itemIndex],
-      completed: !updatedItemStatus[itemIndex].completed
-    };
-
-    const { error } = await supabase
-      .from('orders')
-      .update({ item_status: updatedItemStatus as any })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating item status:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del item",
-        variant: "destructive"
-      });
-    } else {
-      // Update local state
-      setPendingOrders(prev => prev.map(o =>
-        o.id === orderId
-          ? { ...o, item_status: updatedItemStatus }
-          : o
-      ));
-
-      const item = updatedItemStatus[itemIndex];
-      const itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-      const action = item.completed ? "completado" : "pendiente";
-      toast({
-        title: `Item ${action}`,
-        description: `${itemDesc} marcado como ${action}`,
-      });
-    }
-  };
-
-  const markAsCompleted = async (orderId: string) => {
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: 'completed' })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating order:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo marcar el pedido como completado",
-        variant: "destructive"
-      });
-    } else {
-      // Optimistic local update while waiting for realtime
-      let moved: Order | undefined;
-      setPendingOrders(prev => {
-        moved = prev.find(o => o.id === orderId);
-        return prev.filter(o => o.id !== orderId);
-      });
-      if (moved) {
-        const updated = { ...moved, status: 'completed' as const };
-        setCompletedOrders(prev => [updated, ...prev]);
-      }
-      toast({
-        title: "Pedido Completado",
-        description: "El pedido ha sido marcado como listo"
-      });
-    }
-  };
-
-  const markCadeteSalio = async (orderId: string) => {
-    const order = pendingOrders.find(o => o.id === orderId);
-    if (!order) return;
-
-    const { error } = await supabase
-      .from('orders')
-      .update({ cadete_salio: true })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating cadete status:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo marcar el estado",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Determine if it's pickup or delivery
-    const direccion = order.direccion_envio?.toLowerCase() || '';
-    const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
-
-    // Notify webhook via Edge Function
-    try {
-      const webhookPayload = {
-        order_number: order.order_number,
-        nombre: order.nombre,
-        telefono: (order as any).telefono,
-        tipo: isPickup ? 'retiro' : 'envio',
-        estado: isPickup ? 'listo_para_retirar' : 'cadete_salio',
-        direccion_envio: order.direccion_envio,
-      };
-
-      console.log('Notifying order status webhook:', webhookPayload);
-
-      const { data, error: fnError } = await supabase.functions.invoke('notify-order-status', {
-        body: webhookPayload,
-      });
-
-      if (fnError) throw fnError;
-      console.log('Webhook notify result:', data);
-    } catch (webhookError) {
-      console.error('Error notifying webhook:', webhookError);
-      toast({
-        title: 'Aviso',
-        description: 'El pedido se marcó como listo, pero no se pudo notificar al webhook.',
-      });
-    }
-
-    setPendingOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, cadete_salio: true } : o
-    ));
-
-    toast({
-      title: isPickup ? "Listo para retirar" : "Cadete en camino",
-      description: isPickup ? "El cliente será notificado" : "El cadete ha salido con el pedido",
-    });
-  };
-
-  const reprintTicket = async (order: Order) => {
-    try {
-      // Generate ESC/POS ticket for cashier
-      const generateCashierTicket = (): Uint8Array => {
-        const bytes: number[] = [];
-
-        // ESC/POS commands
-        const ESC = 0x1B;
-        const GS = 0x1D;
-        const LF = 0x0A;
-        const CENTER = [ESC, 0x61, 0x01];
-        const BOLD_ON = [ESC, 0x45, 0x01];
-        const BOLD_OFF = [ESC, 0x45, 0x00];
-        const DOUBLE_SIZE = [ESC, 0x21, 0x30];
-        const MEDIUM_SIZE = [ESC, 0x21, 0x10];
-        const CUT = [GS, 0x56, 0x00];
-
-        const addBytes = (...b: number[]) => bytes.push(...b);
-        const addText = (text: string) => {
-          const encoder = new TextEncoder();
-          addBytes(...Array.from(encoder.encode(text)));
-        };
-        const addLine = () => {
-          addText('================================');
-          addBytes(LF);
-        };
-        const newLine = () => addBytes(LF);
-
-        addBytes(...CENTER);
-        addBytes(...DOUBLE_SIZE, ...BOLD_ON);
-        addText('CAJA');
-        addBytes(...BOLD_OFF, LF);
-        addLine();
-        addBytes(...BOLD_ON);
-        addText(`PEDIDO #${order.order_number}`);
-        addBytes(...BOLD_OFF, LF, ...MEDIUM_SIZE);
-        addLine();
-        newLine();
-        addText(`Cliente: ${order.nombre}`);
-        newLine();
-        if (order.direccion_envio) {
-          newLine();
-          addText(`Entrega:`);
-          newLine();
-          addText(`${order.direccion_envio}`);
-          newLine();
-        }
-        newLine();
-        addLine();
-        newLine();
-
-        if (order.items) {
-          order.items.forEach((item: OrderItem) => {
-            let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
-            if (item.combo) {
-              itemDesc += ' (combo)';
-            }
-            newLine();
-            addText(itemDesc);
-            newLine();
-
-            if (item.additions && item.additions.length > 0) {
-              addText(`+ ${item.additions.join(', ')}`);
-              newLine();
-            }
-            if (item.removals && item.removals.length > 0) {
-              addText(`- ${item.removals.join(', ')}`);
-              newLine();
-            }
-          });
-        }
-
-        addLine();
-        newLine();
-        addBytes(...BOLD_ON);
-        addText(`TOTAL: $${parseFloat(order.monto.toString()).toLocaleString('es-AR')}`);
-        addBytes(...BOLD_OFF, LF);
-        newLine();
-        addText(`Pago: ${order.metodo_pago || 'efectivo'}`);
-        newLine();
-
-        addBytes(LF, LF, LF, LF, LF);
-        addBytes(...CUT);
-
-        return new Uint8Array(bytes);
-      };
-
-      const ticketBytes = generateCashierTicket();
-      const ticketBase64 = btoa(String.fromCharCode(...ticketBytes));
-
-      // Send to cashier webhook only
-      const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
-
-      const response = await fetch(cashierWebhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          order_number: order.order_number,
-          ticket: ticketBase64,
-          nombre: order.nombre,
-          monto: order.monto,
-          metodo_pago: order.metodo_pago,
-          items: order.items,
-          direccion_envio: order.direccion_envio
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error al reimprimir: ${response.status}`);
-      }
-
-      toast({
-        title: "Ticket reimpreso",
-        description: `Pedido #${order.order_number} enviado a impresora de caja`,
-      });
-    } catch (error) {
-      console.error('Error reprinting ticket:', error);
-      toast({
-        title: "Error al reimprimir",
-        description: "No se pudo reimprimir el ticket",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getOrderAge = (createdAt: string) => {
-    const now = new Date();
-    const orderTime = new Date(createdAt);
-    const diffInMinutes = Math.floor((now.getTime() - orderTime.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 1) return { text: "Recién llegado", urgent: false };
-    if (diffInMinutes < 15) return { text: `${diffInMinutes} min`, urgent: false };
-    if (diffInMinutes < 30) return { text: `${diffInMinutes} min`, urgent: true };
-    return { text: `${diffInMinutes} min`, urgent: true };
-  };
-
-
-  const printPendingOrders = () => {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Ticket Pedidos - Roses Burgers</title>
-          <style>
-            body { 
-              font-family: 'Courier New', monospace; 
-              margin: 0; 
-              padding: 10px;
-              font-size: 12px;
-              line-height: 1.2;
-              width: 80mm;
-              max-width: 300px;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 15px; 
-              border-bottom: 1px dashed #000; 
-              padding-bottom: 8px; 
-            }
-            .company-name { 
-              font-weight: bold; 
-              font-size: 14px; 
-              margin-bottom: 3px; 
-            }
-            .ticket-info { 
-              font-size: 10px; 
-              margin-bottom: 10px; 
-            }
-            .order { 
-              margin-bottom: 15px; 
-              border-bottom: 1px dashed #000; 
-              padding-bottom: 10px; 
-            }
-            .order-header { 
-              font-weight: bold; 
-              margin-bottom: 5px; 
-              text-transform: uppercase;
-            }
-            .order-time { 
-              font-size: 10px; 
-              color: #666; 
-            }
-            .items { 
-              margin: 8px 0; 
-            }
-            .item { 
-              margin: 2px 0; 
-              display: flex; 
-              justify-content: space-between;
-            }
-            .item-name { 
-              flex: 1; 
-            }
-            .item-qty { 
-              margin-left: 10px; 
-              font-weight: bold; 
-            }
-            .delivery { 
-              background: #f8f8f8; 
-              padding: 5px; 
-              margin: 5px 0; 
-              font-size: 11px;
-              border: 1px solid #ddd;
-            }
-            .total { 
-              font-weight: bold; 
-              text-align: right; 
-              margin-top: 5px;
-              font-size: 13px;
-            }
-            .urgent { 
-              background: #ffe6e6; 
-              border: 1px solid #ff9999;
-            }
-            .footer {
-              text-align: center;
-              margin-top: 15px;
-              padding-top: 8px;
-              border-top: 1px dashed #000;
-              font-size: 10px;
-            }
-            @media print {
-              body { 
-                margin: 0; 
-                width: 80mm;
-                font-size: 11px;
-              }
-              .order { 
-                break-inside: avoid; 
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company-name">ROSES BURGERS</div>
-            <div>CUIT: 20-12345678-9</div>
-            <div>IVA RESPONSABLE INSCRIPTO</div>
-            <div class="ticket-info">
-              TICKET COMANDA<br>
-              ${new Date().toLocaleDateString('es-AR')} ${new Date().toLocaleTimeString('es-AR')}<br>
-              PEDIDOS PENDIENTES: ${pendingOrders.length}
-            </div>
-          </div>
-          
-          ${pendingOrders.map((order, index) => {
-      const orderAge = getOrderAge(order.created_at);
-      return `
-              <div class="order ${orderAge.urgent ? 'urgent' : ''}">
-                <div class="order-header">
-                  PEDIDO #${order.order_number} - ${order.nombre}
-                </div>
-                <div class="order-time">
-                  Tiempo: ${orderAge.text} ${orderAge.urgent ? '⚠️ URGENTE' : ''}
-                </div>
-                
-                <div class="items">
-                  ${order.item_status && order.item_status.length > 0 ?
-          order.item_status.map((item, idx) => {
-            const additions = order.items?.[idx]?.additions && order.items[idx].additions!.length > 0
-              ? ` (con ${order.items[idx].additions!.join(", ")})`
-              : '';
-            const removals = order.items?.[idx]?.removals && order.items[idx].removals!.length > 0
-              ? ` (sin ${order.items[idx].removals!.join(", ")})`
-              : '';
-            const combo = item.combo ? " combo" : "";
-            return `<div class="item">
-                        <span class="item-name">☐ ${item.burger_type} ${item.patty_size}${combo}${additions}${removals}</span>
-                        <span class="item-qty">${item.quantity}x</span>
-                      </div>`;
-          }).join('') :
-          order.items && order.items.length > 0 ?
-            order.items.map(item => {
-              const additions = item.additions && item.additions.length > 0
-                ? ` (con ${item.additions.join(", ")})`
-                : '';
-              const removals = item.removals && item.removals.length > 0
-                ? ` (sin ${item.removals.join(", ")})`
-                : '';
-              const combo = item.combo ? " combo" : "";
-              return `<div class="item">
-                        <span class="item-name">${item.quantity}x ${item.burger_type} ${item.patty_size}${combo}${additions}${removals}</span>
-                      </div>`;
-            }).join('') :
-            `<div class="item">
-                      <span class="item-name">Sin items</span>
-                    </div>`
-        }
-                </div>
-                
-                <div class="delivery">
-                  <strong>ENTREGA:</strong><br>
-                  ${order.direccion_envio || 'RETIRO EN LOCAL'}
-                </div>
-                
-                <div class="total">
-                  TOTAL: $${order.monto}
-                </div>
-              </div>
-            `;
-    }).join('')}
-          
-          <div class="footer">
-            DOCUMENTO NO VÁLIDO COMO FACTURA<br>
-            COMANDA INTERNA DE COCINA<br>
-            www.rosesburgers.com.ar
-          </div>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }
-  };
-
-  const OrderCard = ({ order, showCompleteButton = true }: { order: Order; showCompleteButton?: boolean }) => {
-    const orderAge = getOrderAge(order.created_at);
-
-    return (
-      <Card
-        className={`transition-all duration-500 hover:shadow-lg animate-in fade-in-0 slide-in-from-top-4 ${orderAge.urgent && showCompleteButton
-          ? 'border-kitchen-urgent shadow-md'
-          : 'border-border'
-          }`}
-        style={{
-          animationDelay: `${Math.random() * 500}ms`
-        }}
-      >
-        <CardHeader className="pb-3">
-          {/* Scheduled order banner */}
-          {order.hora_programada && (
-            <div className="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-2 rounded-md mb-3 text-center">
-              <span className="font-bold text-lg">🕐 PROGRAMADO: {order.hora_programada}</span>
-            </div>
-          )}
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg">{order.nombre}</CardTitle>
-              <Badge variant="secondary" className="text-xs mt-1">
-                Pedido #{order.order_number}
-              </Badge>
-            </div>
-            <div className="flex flex-col gap-2 items-end">
-              {showCompleteButton && (
-                <Badge
-                  variant={orderAge.urgent ? "destructive" : "secondary"}
-                  className="text-xs"
-                >
-                  <Clock className="w-3 h-3 mr-1" />
-                  {orderAge.text}
-                </Badge>
-              )}
-              <Badge variant="outline" className="text-xs">
-                <DollarSign className="w-3 h-3 mr-1" />
-                ${order.monto}
-              </Badge>
-              <div className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
-                {formatPaymentMethod(order.metodo_pago)}
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Show items TO-DO list if parsed and this is a pending order, otherwise show full pedido */}
-          {order.item_status && order.item_status.length > 0 && showCompleteButton ? (
-            <div className="bg-muted p-3 rounded-md">
-              <p className="font-medium text-sm text-muted-foreground mb-3">
-                📋 TO-DO Items:
-              </p>
-              <div className="space-y-2">
-                {order.item_status.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <Button
-                      variant={item.completed ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleItemCompleted(order.id, index)}
-                      className={`flex items-center gap-2 ${item.completed
-                        ? "bg-success text-success-foreground hover:bg-success/90"
-                        : "hover:bg-muted-foreground/10"
-                        }`}
-                    >
-                      <Check className={`w-3 h-3 ${item.completed ? "opacity-100" : "opacity-30"}`} />
-                      <span className={`text-xs ${item.completed ? "line-through" : ""}`}>
-                        {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? "combo" : ""}
-                        {order.items?.[index]?.additions && order.items[index].additions!.length > 0 &&
-                          ` (con ${order.items[index].additions!.join(", ")})`
-                        }
-                        {order.items?.[index]?.removals && order.items[index].removals!.length > 0 &&
-                          ` (sin ${order.items[index].removals!.join(", ")})`
-                        }
-                        {order.items?.[index]?.observations &&
-                          ` 📝 ${order.items[index].observations}`
-                        }
-                      </span>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : order.items && order.items.length > 0 ? (
-            <div className="bg-muted p-3 rounded-md">
-              <p className="font-medium text-sm text-muted-foreground mb-2">
-                Items del Pedido:
-              </p>
-              <div className="space-y-2">
-                {order.items.map((item, index) => (
-                  <div key={index} className="text-sm font-medium text-foreground">
-                    {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? "combo" : ""}
-                    {item.additions && item.additions.length > 0 && ` (con ${item.additions.join(", ")})`}
-                    {item.removals && item.removals.length > 0 && ` (sin ${item.removals.join(", ")})`}
-                    {item.observations && ` 📝 ${item.observations}`}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-muted p-3 rounded-md">
-              <p className="font-medium text-sm text-muted-foreground mb-1">
-                Sin detalles
-              </p>
-            </div>
-          )}
-
-          {/* Extras section */}
-          {order.extras && order.extras.length > 0 && (
-            <div className="bg-orange-50 border border-orange-300 p-3 rounded-md">
-              <p className="font-bold text-sm text-orange-800 mb-2">
-                🍟 EXTRAS
-              </p>
-              <div className="space-y-1">
-                {order.extras.map((extra, index) => (
-                  <div key={index} className="text-sm font-medium text-orange-900">
-                    {extra.quantity || 1}x {extra.name}
-                    {extra.price && ` - $${extra.price.toLocaleString('es-AR')}`}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* DOMICILIO section */}
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-md">
-            <p className="font-medium text-sm text-blue-700 mb-1">
-              🏠 DOMICILIO:
-            </p>
-            <p className="text-blue-900 text-sm">
-              {order.direccion_envio || "Sin dirección de envío especificada"}
-            </p>
-          </div>
-
-          {/* Cash management section - only show for cash payments */}
-          {order.paga_con != null && (() => {
-            const mp = (order.metodo_pago || '').toLowerCase();
-            const isOnlyDigital = mp === 'transferencia' || mp === 'link de pago' || mp === 'link';
-            const dir = (order.direccion_envio || '').toLowerCase();
-            const isPickup = dir.includes('retira') || dir.includes('retiro') || dir === 'local';
-            return !isOnlyDigital && !isPickup;
-          })() && (
-            <div className="bg-emerald-50 border-2 border-emerald-400 p-3 rounded-md">
-              <p className="font-bold text-sm text-emerald-800 mb-2">
-                💵 COBRO
-              </p>
-              <div className="space-y-1">
-                <p className="text-emerald-900 text-sm font-semibold">
-                  Paga con: <span className="text-lg">${order.paga_con?.toLocaleString('es-AR')}</span>
-                </p>
-                {order.vuelto != null && order.vuelto > 0 && (
-                  <p className="text-emerald-900 text-sm font-semibold">
-                    Vuelto: <span className="text-lg text-emerald-700">${order.vuelto.toLocaleString('es-AR')}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="text-xs text-muted-foreground">
-            {showCompleteButton ? 'Recibido' : 'Completado'}: {formatDistance(new Date(order.created_at), new Date(), {
-              addSuffix: true,
-              locale: es
-            })}
-          </div>
-
-          {showCompleteButton && (
-            <div className="space-y-2">
-              {(() => {
-                const direccion = order.direccion_envio?.toLowerCase() || '';
-                const isPickup = direccion.includes('retira') || direccion.includes('retiro') || direccion === 'local';
-
-                if (!isPickup && order.direccion_envio) {
-                  // Delivery order
-                  return order.cadete_salio ? (
-                    <Badge variant="default" className="w-full py-2 justify-center">
-                      🚴 Cadete en camino
-                    </Badge>
-                  ) : (
-                    <Button
-                      onClick={() => markCadeteSalio(order.id)}
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      🚴 Cadete Salió
-                    </Button>
-                  );
-                } else if (isPickup) {
-                  // Pickup order
-                  return order.cadete_salio ? (
-                    <Badge variant="default" className="w-full py-2 justify-center">
-                      ✅ Listo para retirar
-                    </Badge>
-                  ) : (
-                    <Button
-                      onClick={() => markCadeteSalio(order.id)}
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      📦 Listo para retirar
-                    </Button>
-                  );
-                }
-                return null;
-              })()}
-              <Button
-                onClick={() => markAsCompleted(order.id)}
-                className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                size="lg"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Hecho
-              </Button>
-            </div>
-          )}
-
-          {order.id && (
-            <Button
-              onClick={() => reprintTicket(order)}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <Printer className="w-4 h-4 mr-2" />
-              Reimprimir ticket
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
+  const handleColumnsChange = (v: Columns) => {
+    setColumns(v)
+    localStorage.setItem('dashboard-columns', String(v))
+  }
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <img
-              src="/lovable-uploads/86ac5a9c-d0bd-40ac-88b0-07fc04f59e14.png"
-              alt="Roses Burgers Logo"
-              className="h-16 w-auto"
-            />
-            <h1 className="text-5xl font-bold text-foreground">
-              ROSES BURGERS
-            </h1>
-            <Button
-              onClick={() => setManualOrderDialogOpen(true)}
-              size="lg"
-              className="ml-4 rounded-full h-14 w-14 bg-success hover:bg-success/90"
-            >
-              <Plus className="h-8 w-8" />
-            </Button>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground text-sm mt-1">Gestión de pedidos en tiempo real</p>
           </div>
-          <p className="text-xl text-muted-foreground mb-6">
-            Sistema de gestión de pedidos en tiempo real
-          </p>
+          <Button
+            onClick={() => setManualOrderDialogOpen(true)}
+            size="lg"
+            className="rounded-full h-12 w-12 bg-primary hover:bg-primary/90 p-0"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
         </div>
 
         <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="pending" className="flex items-center gap-2">
-              <ChefHat className="w-4 h-4" />
-              Pedidos Pendientes ({pendingOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="flex items-center gap-2">
-              <Check className="w-4 h-4" />
-              Pedidos Completados ({completedOrders.length})
-            </TabsTrigger>
-          </TabsList>
+          {/* Tab bar + column selector on the same row */}
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <TabsList className="h-9">
+              <TabsTrigger value="pending" className="flex items-center gap-1.5 text-sm">
+                <ChefHat className="w-3.5 h-3.5" />
+                Pendientes
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={pendingOrders.length}
+                    initial={{ scale: 1.3, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="ml-0.5 bg-primary/20 text-primary text-xs font-bold px-1.5 py-0.5 rounded-full"
+                  >
+                    {pendingOrders.length}
+                  </motion.span>
+                </AnimatePresence>
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="flex items-center gap-1.5 text-sm">
+                <Check className="w-3.5 h-3.5" />
+                Completados
+                <span className="ml-0.5 bg-muted text-muted-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {completedOrders.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="pending">
-            {pendingOrders.length === 0 ? (
-              <Card className="text-center py-12">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground hidden sm:block">por fila:</span>
+              <ColumnSelector value={columns} onChange={handleColumnsChange} />
+            </div>
+          </div>
+
+          {/* Pending tab */}
+          <TabsContent value="pending" className="mt-0">
+            {pendingOrders.length > 0 && (
+              <div className="flex justify-end mb-3">
+                <Button
+                  onClick={() => printPendingOrders(pendingOrders)}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  <Printer className="w-3 h-3 mr-1.5" />
+                  Imprimir comanda
+                </Button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className={`grid ${GRID[columns]} gap-4`}>
+                {[1, 2, 3].map(i => <div key={i} className="h-48 rounded-lg bg-card animate-pulse" />)}
+              </div>
+            ) : pendingOrders.length === 0 ? (
+              <Card className="text-center py-14">
                 <CardContent>
-                  <Clock className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hay pedidos pendientes</h3>
-                  <p className="text-muted-foreground">
-                    Los nuevos pedidos aparecerán aquí automáticamente
-                  </p>
+                  <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground">No hay pedidos pendientes</h3>
+                  <p className="text-muted-foreground text-sm mt-1">Los nuevos pedidos aparecerán aquí automáticamente</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button
-                    onClick={printPendingOrders}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Imprimir Pedidos
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pendingOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} />
+              <div className={`grid ${GRID[columns]} gap-4`}>
+                <AnimatePresence initial={false}>
+                  {pendingOrders.map(order => (
+                    <OrderCard key={order.id} order={order} showCompleteButton />
                   ))}
-                </div>
+                </AnimatePresence>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="completed">
-            {completedOrders.length === 0 ? (
-              <Card className="text-center py-12">
+          {/* Completed tab */}
+          <TabsContent value="completed" className="mt-0">
+            {loading ? (
+              <div className={`grid ${GRID[columns]} gap-4`}>
+                {[1, 2].map(i => <div key={i} className="h-36 rounded-lg bg-card animate-pulse" />)}
+              </div>
+            ) : completedOrders.length === 0 ? (
+              <Card className="text-center py-14">
                 <CardContent>
-                  <Check className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No hay pedidos completados</h3>
-                  <p className="text-muted-foreground">
-                    Los pedidos marcados como hechos aparecerán aquí
-                  </p>
+                  <Check className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                  <h3 className="font-semibold text-foreground">No hay pedidos completados</h3>
+                  <p className="text-muted-foreground text-sm mt-1">Los pedidos marcados como listos aparecerán aquí</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} showCompleteButton={false} />
-                ))}
+              <div className={`grid ${GRID[columns]} gap-4`}>
+                <AnimatePresence initial={false}>
+                  {completedOrders.map(order => (
+                    <OrderCard key={order.id} order={order} showCompleteButton={false} />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </TabsContent>
@@ -971,7 +220,7 @@ const Index = () => {
         onOpenChange={setManualOrderDialogOpen}
       />
     </div>
-  );
-};
+  )
+}
 
-export default Index;
+export default Index
