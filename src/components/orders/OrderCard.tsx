@@ -254,9 +254,13 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       <span className={`text-xs flex-1 ${item.completed ? 'line-through opacity-70' : ''}`}>
                         {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
                         {order.items?.[index]?.additions?.length ? ` + ${order.items[index].additions!.join(', ')}` : ''}
-                        {order.items?.[index]?.removals?.length ? ` - ${order.items[index].removals!.join(', ')}` : ''}
                         {order.items?.[index]?.observations ? ` 📝 ${order.items[index].observations}` : ''}
                       </span>
+                      {order.items?.[index]?.removals?.length ? (
+                        <span className="ml-2 inline-flex items-center shrink-0 bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          🚫 SIN: {order.items[index].removals!.join(' · ').toUpperCase()}
+                        </span>
+                      ) : null}
                     </Button>
                   ))}
                 </div>
@@ -266,11 +270,17 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                 <p className="font-medium text-xs text-muted-foreground mb-2">Items del Pedido:</p>
                 <div className="space-y-1">
                   {order.items.map((item, index) => (
-                    <div key={index} className="text-sm text-foreground">
-                      {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
-                      {item.additions?.length ? ` + ${item.additions.join(', ')}` : ''}
-                      {item.removals?.length ? ` - ${item.removals.join(', ')}` : ''}
-                      {item.observations ? ` 📝 ${item.observations}` : ''}
+                    <div key={index} className="text-sm text-foreground flex flex-wrap items-center gap-1">
+                      <span>
+                        {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
+                        {item.additions?.length ? ` + ${item.additions.join(', ')}` : ''}
+                        {item.observations ? ` 📝 ${item.observations}` : ''}
+                      </span>
+                      {item.removals?.length ? (
+                        <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          🚫 SIN: {item.removals.join(' · ').toUpperCase()}
+                        </span>
+                      ) : null}
                     </div>
                   ))}
                 </div>
