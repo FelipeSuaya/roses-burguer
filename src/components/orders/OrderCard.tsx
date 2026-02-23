@@ -210,7 +210,10 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
             <div className="flex justify-between items-start gap-3">
               <div className="min-w-0 flex-1">
                 <h3 className="text-lg font-bold text-foreground leading-tight">{order.nombre}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Pedido #{order.order_number}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Pedido #{order.order_number} · {showCompleteButton ? 'hace' : 'completado hace'}{' '}
+                  {formatDistance(new Date(order.created_at), new Date(), { locale: es })}
+                </p>
               </div>
               <div className="flex flex-col gap-1.5 items-end shrink-0">
                 {showCompleteButton && (
@@ -327,10 +330,6 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground">
-              {showCompleteButton ? 'Recibido' : 'Completado'}:{' '}
-              {formatDistance(new Date(order.created_at), new Date(), { addSuffix: true, locale: es })}
-            </div>
 
             {/* Actions */}
             {showCompleteButton && (
