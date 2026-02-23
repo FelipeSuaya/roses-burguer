@@ -245,7 +245,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       variant={item.completed ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => toggleItemCompleted(index)}
-                      className={`w-full justify-start text-left h-auto py-2 flex-col items-start gap-1 ${
+                      className={`w-full justify-start text-left h-auto py-2 flex-col items-start gap-1 whitespace-normal ${
                         item.completed ? 'bg-emerald-700/80 hover:bg-emerald-700/70 text-white border-emerald-600' : ''
                       }`}
                     >
