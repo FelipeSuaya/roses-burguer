@@ -243,7 +243,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       size="sm"
                       onClick={() => toggleItemCompleted(index)}
                       className={`w-full justify-start text-left h-auto py-2 flex-col items-start gap-1 ${
-                        item.completed ? 'bg-emerald-700/80 hover:bg-emerald-700/70 text-white border-emerald-600' : ''
+                        item.completed ? 'bg-zinc-700/80 hover:bg-zinc-700/70 text-zinc-100 border-zinc-500' : ''
                       }`}
                     >
                       <div className="flex items-start gap-2 w-full">
@@ -256,7 +256,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       </div>
                       {order.items?.[index]?.removals?.length ? (
                         <div className="pl-5">
-                          <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          <span className="inline-flex items-center bg-red-950/70 border border-red-700/60 text-red-300 text-[10px] font-semibold px-1.5 py-0.5 rounded">
                             🚫 SIN: {order.items[index].removals!.join(' · ').toUpperCase()}
                           </span>
                         </div>
@@ -278,7 +278,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       </span>
                       {item.removals?.length ? (
                         <div className="mt-0.5">
-                          <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          <span className="inline-flex items-center bg-red-950/70 border border-red-700/60 text-red-300 text-[10px] font-semibold px-1.5 py-0.5 rounded">
                             🚫 SIN: {item.removals.join(' · ').toUpperCase()}
                           </span>
                         </div>
@@ -295,33 +295,33 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
 
             {/* Extras */}
             {order.extras && order.extras.length > 0 && (
-              <div className="bg-orange-950/40 border border-orange-700/50 p-3 rounded-md">
-                <p className="font-bold text-xs text-orange-300 mb-1.5">🍟 EXTRAS</p>
+              <div className="bg-muted/40 border border-border rounded-md p-3">
+                <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-1.5">🍟 Extras</p>
                 {order.extras.map((extra, i) => (
-                  <div key={i} className="text-sm text-orange-200">
+                  <div key={i} className="text-sm text-foreground">
                     {extra.quantity || 1}x {extra.name}
-                    {extra.price ? ` - $${extra.price.toLocaleString('es-AR')}` : ''}
+                    {extra.price ? ` — $${extra.price.toLocaleString('es-AR')}` : ''}
                   </div>
                 ))}
               </div>
             )}
 
             {/* Domicilio */}
-            <div className="bg-blue-950/40 border border-blue-700/50 p-3 rounded-md">
-              <p className="font-medium text-xs text-blue-300 mb-1">🏠 DOMICILIO:</p>
-              <p className="text-sm text-blue-100">{order.direccion_envio || 'Sin dirección'}</p>
+            <div className="bg-muted/40 border-l-2 border-l-slate-500/70 border border-border rounded-md p-3">
+              <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-1">Domicilio</p>
+              <p className="text-sm text-foreground">{order.direccion_envio || 'Sin dirección'}</p>
             </div>
 
             {/* Cash */}
             {showCash && (
-              <div className="bg-emerald-950/40 border-2 border-emerald-600/50 p-3 rounded-md">
-                <p className="font-bold text-xs text-emerald-300 mb-1.5">💵 COBRO</p>
-                <p className="text-sm font-semibold text-emerald-200">
-                  Paga con: <span className="text-base">${order.paga_con?.toLocaleString('es-AR')}</span>
+              <div className="bg-muted/40 border-l-2 border-l-emerald-500/60 border border-border rounded-md p-3">
+                <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-1.5">Cobro</p>
+                <p className="text-sm font-medium text-foreground">
+                  Paga con: <span className="font-bold">${order.paga_con?.toLocaleString('es-AR')}</span>
                 </p>
                 {order.vuelto != null && order.vuelto > 0 && (
-                  <p className="text-sm font-semibold text-emerald-200">
-                    Vuelto: <span className="text-base">${order.vuelto.toLocaleString('es-AR')}</span>
+                  <p className="text-sm font-medium text-foreground">
+                    Vuelto: <span className="font-bold">${order.vuelto.toLocaleString('es-AR')}</span>
                   </p>
                 )}
               </div>
@@ -337,7 +337,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
               <div className="space-y-2">
                 {!isPickup && order.direccion_envio ? (
                   order.cadete_salio ? (
-                    <Badge className="w-full py-2 justify-center bg-emerald-700">🚴 Cadete en camino</Badge>
+                    <Badge className="w-full py-2 justify-center bg-zinc-700">🚴 Cadete en camino</Badge>
                   ) : (
                     <Button onClick={markCadeteSalio} variant="outline" className="w-full" size="sm">
                       🚴 Cadete Salió
@@ -345,7 +345,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                   )
                 ) : isPickup ? (
                   order.cadete_salio ? (
-                    <Badge className="w-full py-2 justify-center bg-emerald-700">✅ Listo para retirar</Badge>
+                    <Badge className="w-full py-2 justify-center bg-zinc-700">✅ Listo para retirar</Badge>
                   ) : (
                     <Button onClick={markCadeteSalio} variant="outline" className="w-full" size="sm">
                       📦 Listo para retirar
@@ -355,7 +355,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
 
                 <Button
                   onClick={markAsCompleted}
-                  className="w-full bg-emerald-700 hover:bg-emerald-600 text-white"
+                  className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-semibold"
                   size="sm"
                 >
                   <Check className="w-4 h-4 mr-2" />
