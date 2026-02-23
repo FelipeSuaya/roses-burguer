@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Clock, DollarSign, Printer } from 'lucide-react'
@@ -97,7 +97,6 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
       i === itemIndex ? { ...it, completed: !it.completed } : it
     )
 
-    // Optimistic: update UI immediately
     updateOrderLocally(order.id, { item_status: updatedItemStatus })
 
     const { error } = await supabase
@@ -106,14 +105,12 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
       .eq('id', order.id)
 
     if (error) {
-      // Revert on failure
       updateOrderLocally(order.id, { item_status: original })
       toast({ title: 'Error', description: 'No se pudo actualizar el item', variant: 'destructive' })
     }
   }
 
   const markAsCompleted = async () => {
-    // Optimistic: move to completed immediately
     moveToCompleted(order.id)
     toast({ title: 'Pedido Completado', description: 'El pedido ha sido marcado como listo' })
 
@@ -124,7 +121,6 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
   }
 
   const markCadeteSalio = async () => {
-    // Optimistic: update UI immediately
     updateOrderLocally(order.id, { cadete_salio: true })
     toast({
       title: isPickup ? 'Listo para retirar' : 'Cadete en camino',
@@ -138,7 +134,6 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
       return
     }
 
-    // Webhook fire-and-forget
     supabase.functions.invoke('notify-order-status', {
       body: {
         order_number: order.order_number,
@@ -202,43 +197,44 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
         transition={{ duration: 2, repeat: Infinity }}
         className="rounded-lg"
       >
-        <Card className={`transition-colors ${isUrgent ? 'border-red-500/60' : 'border-border'}`}>
-          <CardHeader className="pb-3">
+        <Card className={`overflow-hidden transition-colors ${isUrgent ? 'border-red-500/60' : 'border-border'}`}>
+          {/* Top accent bar */}
+          <div className={`h-0.5 w-full ${isUrgent ? 'bg-red-500' : 'bg-primary/60'}`} />
+
+          <CardHeader className="pb-3 pt-4">
             {order.hora_programada && (
               <div className="bg-amber-950/60 border border-amber-600/50 text-amber-300 px-3 py-2 rounded-md mb-3 text-center">
                 <span className="font-bold text-sm">🕐 PROGRAMADO: {order.hora_programada}</span>
               </div>
             )}
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base">{order.nombre}</CardTitle>
-                <Badge variant="secondary" className="text-xs mt-1">
-                  Pedido #{order.order_number}
-                </Badge>
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-foreground leading-tight">{order.nombre}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Pedido #{order.order_number}</p>
               </div>
-              <div className="flex flex-col gap-1.5 items-end">
+              <div className="flex flex-col gap-1.5 items-end shrink-0">
                 {showCompleteButton && (
                   <Badge variant={isUrgent ? 'destructive' : 'secondary'} className="text-xs">
                     <Clock className="w-3 h-3 mr-1" />
                     {orderAge.text}
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-xs">
-                  <DollarSign className="w-3 h-3 mr-1" />
-                  ${order.monto}
+                <Badge variant="outline" className="text-xs font-semibold">
+                  <DollarSign className="w-3 h-3 mr-0.5" />
+                  {parseFloat(order.monto.toString()).toLocaleString('es-AR')}
                 </Badge>
-                <div className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md">
+                <div className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md">
                   {formatPaymentMethod(order.metodo_pago)}
                 </div>
               </div>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-3">
-            {/* Items */}
+          <CardContent className="space-y-3 pt-0">
+            {/* Items – interactive (pending view) */}
             {order.item_status && order.item_status.length > 0 && showCompleteButton ? (
               <div className="bg-muted/50 p-3 rounded-md">
-                <p className="font-medium text-xs text-muted-foreground mb-2">📋 TO-DO Items:</p>
+                <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">📋 Items:</p>
                 <div className="space-y-1.5">
                   {order.item_status.map((item, index) => (
                     <Button
@@ -246,20 +242,24 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       variant={item.completed ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => toggleItemCompleted(index)}
-                      className={`w-full justify-start text-left h-auto py-1.5 ${
+                      className={`w-full justify-start text-left h-auto py-2 flex-col items-start gap-1 ${
                         item.completed ? 'bg-emerald-700/80 hover:bg-emerald-700/70 text-white border-emerald-600' : ''
                       }`}
                     >
-                      <Check className={`w-3 h-3 mr-2 flex-shrink-0 ${item.completed ? 'opacity-100' : 'opacity-30'}`} />
-                      <span className={`text-xs flex-1 ${item.completed ? 'line-through opacity-70' : ''}`}>
-                        {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
-                        {order.items?.[index]?.additions?.length ? ` + ${order.items[index].additions!.join(', ')}` : ''}
-                        {order.items?.[index]?.observations ? ` 📝 ${order.items[index].observations}` : ''}
-                      </span>
-                      {order.items?.[index]?.removals?.length ? (
-                        <span className="ml-2 inline-flex items-center shrink-0 bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
-                          🚫 SIN: {order.items[index].removals!.join(' · ').toUpperCase()}
+                      <div className="flex items-start gap-2 w-full">
+                        <Check className={`w-3 h-3 mt-0.5 flex-shrink-0 ${item.completed ? 'opacity-100' : 'opacity-30'}`} />
+                        <span className={`text-xs min-w-0 flex-1 break-words leading-relaxed ${item.completed ? 'line-through opacity-70' : ''}`}>
+                          {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
+                          {order.items?.[index]?.additions?.length ? ` + ${order.items[index].additions!.join(', ')}` : ''}
+                          {order.items?.[index]?.observations ? ` 📝 ${order.items[index].observations}` : ''}
                         </span>
+                      </div>
+                      {order.items?.[index]?.removals?.length ? (
+                        <div className="pl-5">
+                          <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                            🚫 SIN: {order.items[index].removals!.join(' · ').toUpperCase()}
+                          </span>
+                        </div>
                       ) : null}
                     </Button>
                   ))}
@@ -267,19 +267,21 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
               </div>
             ) : order.items && order.items.length > 0 ? (
               <div className="bg-muted/50 p-3 rounded-md">
-                <p className="font-medium text-xs text-muted-foreground mb-2">Items del Pedido:</p>
-                <div className="space-y-1">
+                <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">Items del Pedido:</p>
+                <div className="space-y-2">
                   {order.items.map((item, index) => (
-                    <div key={index} className="text-sm text-foreground flex flex-wrap items-center gap-1">
+                    <div key={index} className="text-sm text-foreground">
                       <span>
                         {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
                         {item.additions?.length ? ` + ${item.additions.join(', ')}` : ''}
                         {item.observations ? ` 📝 ${item.observations}` : ''}
                       </span>
                       {item.removals?.length ? (
-                        <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
-                          🚫 SIN: {item.removals.join(' · ').toUpperCase()}
-                        </span>
+                        <div className="mt-0.5">
+                          <span className="inline-flex items-center bg-red-900/80 border border-red-400/70 text-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                            🚫 SIN: {item.removals.join(' · ').toUpperCase()}
+                          </span>
+                        </div>
                       ) : null}
                     </div>
                   ))}
