@@ -54,7 +54,7 @@ serve(async (req) => {
       );
     }
 
-    const webhookUrl = "https://n8nwebhookx.botec.tech/webhook/notificacion-estado";
+    const webhookUrl = "https://front.botec.tech/webhook/notificacion-estado";
 
     const webhookRes = await fetch(webhookUrl, {
       method: "POST",

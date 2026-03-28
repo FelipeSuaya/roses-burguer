@@ -36,7 +36,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { order_number, nombre, items, extras, monto, telefono, direccion_envio, metodo_pago, hora_programada } = raw;
+    // NOTE: nombre is intentionally excluded from destructuring — it should never
+    // be updated on edit because the AI agent may send a default value like "Cliente".
+    const { order_number, items, extras, monto, telefono, direccion_envio, metodo_pago, hora_programada, paga_con, vuelto } = raw;
 
     if (!order_number) {
       return new Response(
@@ -52,7 +54,7 @@ Deno.serve(async (req) => {
     argentinaTime.setHours(0, 0, 0, 0);
     const todayStartUTC = new Date(argentinaTime.getTime() - (argentinaOffset + now.getTimezoneOffset()) * 60000);
     const todayISO = todayStartUTC.toISOString();
-    
+
     const { data: orders, error: findError } = await supabase
       .from('orders')
       .select('*')
@@ -73,8 +75,8 @@ Deno.serve(async (req) => {
 
 
     // Prepare update data
+    // nombre is deliberately omitted — never overwrite the customer name on edit
     const updateData: any = {};
-    if (nombre !== undefined) updateData.nombre = nombre;
     if (items !== undefined) {
       updateData.items = items;
       // Update item_status to match new items
@@ -88,14 +90,22 @@ Deno.serve(async (req) => {
     if (direccion_envio !== undefined) updateData.direccion_envio = direccion_envio;
     if (hora_programada !== undefined) updateData.hora_programada = hora_programada;
     if (extras !== undefined) updateData.extras = extras;
-    
+    if (paga_con != null) updateData.paga_con = parseFloat(paga_con);
+    if (vuelto != null) updateData.vuelto = parseFloat(vuelto);
+
     // Handle metodo_pago - can be string or array for mixed payments
     if (metodo_pago !== undefined) {
       if (Array.isArray(metodo_pago)) {
-        // Mixed payment: format as "30000 transferencia, 20000 efectivo"
-        updateData.metodo_pago = metodo_pago
-          .map((p: { metodo: string; monto: number }) => `${p.monto.toLocaleString('es-AR')} ${p.metodo}`)
-          .join(', ');
+        // Check if array contains objects (mixed payment) or plain strings
+        if (metodo_pago.length > 0 && typeof metodo_pago[0] === 'object') {
+          // Mixed payment: format as "30000 transferencia, 20000 efectivo"
+          updateData.metodo_pago = metodo_pago
+            .map((p: { metodo: string; monto: number }) => `${p.monto.toLocaleString('es-AR')} ${p.metodo}`)
+            .join(', ');
+        } else {
+          // Simple array of strings like ["efectivo"]
+          updateData.metodo_pago = metodo_pago.join(', ');
+        }
       } else {
         updateData.metodo_pago = metodo_pago;
       }
@@ -287,13 +297,16 @@ Deno.serve(async (req) => {
                   newLine();
                   removed.forEach((it: any) => {
                     let itemDesc = `${it.quantity}x ${it.burger_type} ${it.patty_size}`;
+                    if (it.veggie) {
+                      itemDesc += ' VEGGIE';
+                    }
                     if (it.combo) {
                       itemDesc += ' (combo)';
                     }
                     newLine();
                     addText(itemDesc);
                     newLine();
-                    
+
                     if (it.additions && it.additions.length > 0) {
                       addText(`+ ${it.additions.join(', ')}`);
                       newLine();
@@ -311,6 +324,9 @@ Deno.serve(async (req) => {
                   newLine();
                   added.forEach((it: any) => {
                     let itemDesc = `${it.quantity}x ${it.burger_type} ${it.patty_size}`;
+                    if (it.veggie) {
+                      itemDesc += ' VEGGIE';
+                    }
                     if (it.combo) {
                       itemDesc += ' (combo)';
                     }
@@ -418,6 +434,9 @@ Deno.serve(async (req) => {
                 const isRemoved = removed.some((r: any) => isSameItem(r, item));
                 
                 let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+                if (item.veggie) {
+                  itemDesc += ' VEGGIE';
+                }
                 if (item.combo) {
                   itemDesc += ' (combo)';
                 }

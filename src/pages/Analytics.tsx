@@ -219,6 +219,7 @@ const Analytics = () => {
                       {order.items?.map((item, idx) => (
                         <div key={idx} className="text-xs text-muted-foreground">
                           {item.quantity}x {item.burger_type} {item.patty_size}
+                          {item.veggie && ' VEGGIE'}
                           {item.combo && ' (combo)'}
                         </div>
                       ))}

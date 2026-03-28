@@ -72,23 +72,7 @@ serve(async (req) => {
       completed: false
     }));
 
-    // Get the next order number
-    const { data: orderNumberData, error: orderNumberError } = await supabase
-      .rpc('get_daily_order_number');
-    
-    if (orderNumberError) {
-      console.error('Error getting order number:', orderNumberError);
-      return new Response(JSON.stringify({ error: 'Error generating order number' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    const orderNumber = orderNumberData;
-    console.log('Generated order number:', orderNumber);
-
     // Normalize metodo_pago to always be stored as string for display
-    // But we also track the raw value for mixed payments
     let metodoPagoDisplay = 'efectivo';
     if (metodo_pago) {
       if (Array.isArray(metodo_pago)) {
@@ -101,7 +85,7 @@ serve(async (req) => {
       }
     }
 
-    // Insert new order into the database
+    // Insert new order - order_number is set atomically by the trigger
     const orderData: any = {
       nombre,
       monto: parseFloat(monto),
@@ -111,7 +95,6 @@ serve(async (req) => {
       telefono: telefono || null,
       fecha: new Date().toISOString(),
       status: 'pending',
-      order_number: orderNumber,
       metodo_pago: metodoPagoDisplay,
       hora_programada: hora_programada || null,
       paga_con: paga_con != null ? parseFloat(paga_con) : null,
@@ -136,8 +119,8 @@ serve(async (req) => {
     console.log('New order created:', data);
     
     // Generate PDFs for kitchen and cashier
-    const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
-    const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
+    const kitchenWebhookUrl = 'https://front.botec.tech/webhook/crearFacturaCocina';
+    const cashierWebhookUrl = 'https://front.botec.tech/webhook/crearFacturaCaja';
     
     // Track webhook errors
     const webhookErrors = [];
@@ -212,13 +195,16 @@ serve(async (req) => {
         // Print all items
         data.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.veggie) {
+            itemDesc += ' VEGGIE';
+          }
           if (item.combo) {
             itemDesc += ' (combo)';
           }
           newLine();
           addText(itemDesc);
           newLine();
-          
+
           if (item.additions && item.additions.length > 0) {
             addText(`+ ${item.additions.join(', ')}`);
             newLine();
@@ -286,6 +272,9 @@ serve(async (req) => {
         // Print all items with prices
         data.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.veggie) {
+            itemDesc += ' VEGGIE';
+          }
           if (item.combo) {
             itemDesc += ' (combo)';
           }

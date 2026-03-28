@@ -72,7 +72,7 @@ function printPendingOrders(pendingOrders: Order[]) {
     return `<div class="order ${age.urgent ? 'urgent' : ''}">
       <div class="order-header">PEDIDO #${order.order_number} - ${order.nombre}</div>
       <div>Tiempo: ${age.text}${age.urgent ? ' ⚠️ URGENTE' : ''}</div>
-      ${items.map(item => `<div class="item">☐ ${item.quantity}x ${item.burger_type} ${item.patty_size}${item.combo ? ' combo' : ''}</div>`).join('')}
+      ${items.map(item => `<div class="item">☐ ${item.quantity}x ${item.burger_type} ${item.patty_size}${item.veggie ? ' VEGGIE' : ''}${item.combo ? ' combo' : ''}</div>`).join('')}
       <div><strong>ENTREGA:</strong> ${order.direccion_envio || 'RETIRO EN LOCAL'}</div>
       <div><strong>TOTAL: $${order.monto}</strong></div>
     </div>`

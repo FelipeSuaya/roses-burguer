@@ -9,6 +9,7 @@ export interface OrderItem {
   burger_type: string
   patty_size: string
   combo: boolean
+  veggie?: boolean
   additions?: string[] | null
   removals?: string[] | null
   observations?: string | null

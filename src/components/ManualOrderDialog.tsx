@@ -284,6 +284,9 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
         order.items.forEach((item) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+            if (item.veggie) {
+                itemDesc += " VEGGIE";
+            }
             if (item.combo) {
                 itemDesc += " (combo)";
             }
@@ -335,6 +338,9 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
 
         order.items.forEach((item) => {
             let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+            if (item.veggie) {
+                itemDesc += " VEGGIE";
+            }
             if (item.combo) {
                 itemDesc += " (combo)";
             }

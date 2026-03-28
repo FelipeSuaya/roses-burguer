@@ -95,13 +95,16 @@ serve(async (req) => {
         
         orderData.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.veggie) {
+            itemDesc += ' VEGGIE';
+          }
           if (item.combo) {
             itemDesc += ' (combo)';
           }
           newLine();
           addText(itemDesc);
           newLine();
-          
+
           if (item.additions && item.additions.length > 0) {
             addText(`+ ${item.additions.join(', ')}`);
             newLine();
@@ -168,6 +171,9 @@ serve(async (req) => {
         
         orderData.items.forEach((item: any) => {
           let itemDesc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`;
+          if (item.veggie) {
+            itemDesc += ' VEGGIE';
+          }
           if (item.combo) {
             itemDesc += ' (combo)';
           }

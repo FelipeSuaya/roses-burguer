@@ -65,6 +65,7 @@ function generateCashierTicket(order: Order): Uint8Array {
 
   order.items?.forEach(item => {
     let desc = `${item.quantity}x ${item.burger_type} ${item.patty_size}`
+    if (item.veggie) desc += ' VEGGIE'
     if (item.combo) desc += ' (combo)'
     newLine(); addText(desc); newLine()
     if (item.additions?.length) { addText(`+ ${item.additions.join(', ')}`); newLine() }
@@ -252,7 +253,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                       <div className="flex items-start gap-2 w-full">
                         <Check className={`w-3 h-3 mt-0.5 flex-shrink-0 ${item.completed ? 'opacity-100' : 'opacity-30'}`} />
                         <span className={`text-xs min-w-0 flex-1 break-words leading-relaxed ${item.completed ? 'line-through opacity-70' : ''}`}>
-                          {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
+                          {item.quantity}x {item.burger_type} {item.patty_size}{item.veggie ? ' VEGGIE' : ''} {item.combo ? 'combo' : ''}
                           {order.items?.[index]?.additions?.length ? ` + ${order.items[index].additions!.join(', ')}` : ''}
                           {order.items?.[index]?.observations ? ` 📝 ${order.items[index].observations}` : ''}
                         </span>
@@ -275,7 +276,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
                   {order.items.map((item, index) => (
                     <div key={index} className="text-sm text-foreground">
                       <span>
-                        {item.quantity}x {item.burger_type} {item.patty_size} {item.combo ? 'combo' : ''}
+                        {item.quantity}x {item.burger_type} {item.patty_size}{item.veggie ? ' VEGGIE' : ''} {item.combo ? 'combo' : ''}
                         {item.additions?.length ? ` + ${item.additions.join(', ')}` : ''}
                         {item.observations ? ` 📝 ${item.observations}` : ''}
                       </span>
