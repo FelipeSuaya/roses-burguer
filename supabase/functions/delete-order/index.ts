@@ -148,8 +148,8 @@ Deno.serve(async (req) => {
     }
 
     // Generate cancellation ESC/POS tickets and notify printers
-    const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
-    const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
+    const kitchenWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCocina';
+    const cashierWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCaja';
 
 try {
       const kitchenTicketBytes = generateCancelTicket('kitchen', existingOrder.order_number, existingOrder.nombre);

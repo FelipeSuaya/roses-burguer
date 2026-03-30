@@ -23,8 +23,8 @@ serve(async (req) => {
     const orderData = await req.json();
     console.log('Printing order:', orderData);
 
-    const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
-    const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
+    const kitchenWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCocina';
+    const cashierWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCaja';
     
     const webhookErrors = [];
     

@@ -119,8 +119,8 @@ serve(async (req) => {
     console.log('New order created:', data);
     
     // Generate PDFs for kitchen and cashier
-    const kitchenWebhookUrl = 'https://front.botec.tech/webhook/crearFacturaCocina';
-    const cashierWebhookUrl = 'https://front.botec.tech/webhook/crearFacturaCaja';
+    const kitchenWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCocina';
+    const cashierWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCaja';
     
     // Track webhook errors
     const webhookErrors = [];

@@ -225,8 +225,8 @@ Deno.serve(async (req) => {
           scheduledChanged,
         });
         if (hasChanges) {
-          const kitchenWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina';
-          const cashierWebhookUrl = 'https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja';
+          const kitchenWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCocina';
+          const cashierWebhookUrl = 'https://back.botec.tech/webhook/crearFacturaCaja';
 
             const formatItem = (item: any) => {
             let t = `${item.quantity || 1}x ${item.burger_type} ${item.patty_size}`;
