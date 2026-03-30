@@ -374,8 +374,8 @@ export function ManualOrderDialog({ open, onOpenChange, onOrderCreated }: Manual
         const kitchenTicketBase64 = btoa(String.fromCharCode(...new Uint8Array(kitchenBytes)));
         const cashierTicketBase64 = btoa(String.fromCharCode(...new Uint8Array(cashierBytes)));
 
-        const kitchenWebhookUrl = "https://n8nwebhookx.botec.tech/webhook/crearFacturaCocina";
-        const cashierWebhookUrl = "https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja";
+        const kitchenWebhookUrl = "https://back.botec.tech/webhook/crearFacturaCocina";
+        const cashierWebhookUrl = "https://back.botec.tech/webhook/crearFacturaCaja";
 
         // Send both webhooks in parallel
         const [kitchenResponse, cashierResponse] = await Promise.all([

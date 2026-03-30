@@ -152,7 +152,7 @@ export function OrderCard({ order, showCompleteButton = true }: OrderCardProps) 
       const ticketBytes = generateCashierTicket(order)
       const ticketBase64 = btoa(String.fromCharCode(...ticketBytes))
 
-      const response = await fetch('https://n8nwebhookx.botec.tech/webhook/crearFacturaCaja', {
+      const response = await fetch('https://back.botec.tech/webhook/crearFacturaCaja', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
